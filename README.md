@@ -44,7 +44,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r src/requirements.txt
 ```
 
 ### Ollama
@@ -73,12 +73,12 @@ python main.py <VIDEO_URL> [options]
 
 Basic transcription and AI summary:
 ```bash
-python main.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python src/main.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 With custom models and language:
 ```bash
-python main.py "https://www.tiktok.com/@love1980songs/video/7523531141589126414" \
+python src/main.py "https://www.tiktok.com/@love1980songs/video/7523531141589126414" \
   --model openai-whisper \
   --lang en \
   --llm-model llama3
@@ -86,7 +86,7 @@ python main.py "https://www.tiktok.com/@love1980songs/video/7523531141589126414"
 
 With internet enrichment for comprehensive analysis:
 ```bash
-python main.py "https://www.youtube.com/watch?v=educational_video" \
+python src/main.py "https://www.youtube.com/watch?v=educational_video" \
   --llm-model llama3 \
   --enrich-text
 ```

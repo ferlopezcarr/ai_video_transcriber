@@ -32,17 +32,17 @@
 .DS_Store
 
 ## Transcription outputs
-src/outputs/**/*.txt
-src/outputs/**/*.srt
-src/outputs/**/*.vtt
+outputs/**/*.txt
+outputs/**/*.srt
+outputs/**/*.vtt
 
-src/outputs/**/*.jpg
-src/outputs/**/*.jpeg
-src/outputs/**/*.png
+outputs/**/*.jpg
+outputs/**/*.jpeg
+outputs/**/*.png
 
-src/outputs/**/*.md
-src/outputs/**/*.json
-src/outputs/**/*.csv
+outputs/**/*.md
+outputs/**/*.json
+outputs/**/*.csv
 
 ## Audio outputs
 *.wav

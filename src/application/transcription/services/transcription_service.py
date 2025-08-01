@@ -31,7 +31,7 @@ def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = '
     def _saveTranscription(transcription: str) -> str:
         file_storage: FileStoragePort = LocalFileStorage()
         transcription_file_name: str = video_name if video_name else 'transcription_summary'
-        return file_storage.save(data=transcription, file_path=f"{transcription_file_name}.txt")
+        return file_storage.save(data=transcription, file_path=f"transcriptions/{transcription_file_name}.txt")
 
     video_downloader: VideoDownloaderPort = VideoDownloader()
 

@@ -6,8 +6,12 @@ OUTPUT_PATH = "outputs/"
 
 class LocalFileStorage(FileStoragePort):
     def save(self, data: str, file_path: str) -> str:
-        os.makedirs(OUTPUT_PATH, exist_ok=True)
         output_path = os.path.join(OUTPUT_PATH, f"{file_path}")
+        dir_name = os.path.dirname(output_path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+        else:
+            raise Exception("Invalid file path provided.")
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(data)
         print(f"File saved: {output_path}")
