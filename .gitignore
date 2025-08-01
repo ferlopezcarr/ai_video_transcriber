@@ -1,0 +1,55 @@
+## Editors
+### Visual Studio Code
+.vscode
+### IntelliJ IDEA
+/.idea
+
+## Technology specific
+### Node.js
+**/node_modules
+
+## Expo
+.expo
+
+## Python
+**/__pycache__
+**/venv/
+
+## Build output
+**/dist
+
+## Environment variables
+*.env
+
+## Logs
+/logs
+*.log
+
+## Temporary files
+/tmp
+
+## OS generated files
+.DS_Store
+
+## Transcription outputs
+src/outputs/**/*.txt
+src/outputs/**/*.srt
+src/outputs/**/*.vtt
+
+src/outputs/**/*.jpg
+src/outputs/**/*.jpeg
+src/outputs/**/*.png
+
+src/outputs/**/*.md
+src/outputs/**/*.json
+src/outputs/**/*.csv
+
+## Audio outputs
+*.wav
+*.mp3
+*.m4a
+*.webm
+
+## Video outputs
+*.mp4
+*.avi
