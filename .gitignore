@@ -14,12 +14,15 @@
 ## Python
 **/__pycache__
 **/venv/
+.venv/
+uv.lock
 
 ## Build output
 **/dist
 
 ## Environment variables
 *.env
+!.env.example
 
 ## Logs
 /logs

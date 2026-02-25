@@ -11,7 +11,7 @@ This Python script allows you to **extract, transcribe, and intelligently organi
 - **Audio Transcription:** Downloads audio and transcribes it using:
   - ✅ [faster-whisper](https://github.com/guillaumekln/faster-whisper) *(default, lightweight & fast)*
   - 🧠 [openai-whisper](https://github.com/openai/whisper)
-- **AI-Powered Content Organization:** Uses local LLM (via Ollama) to:
+- **AI-Powered Content Organization:** Uses local LLM (via LM Studio) to:
   - Organize transcriptions by topics and themes
   - Generate structured Markdown summaries with headings, lists, and code snippets
   - Optionally enrich content with internet research for deeper context
@@ -30,9 +30,26 @@ This Python script allows you to **extract, transcribe, and intelligently organi
 
 - Python 3.12 or higher
 - `ffmpeg` installed and in your system path
-- [Ollama](https://ollama.ai/) installed and running locally for AI features
+- [LM Studio](https://lmstudio.ai/) installed and running locally for AI features
 
 ### Creating a Virtual Environment
+
+#### Option 1: Using `uv` (Recommended)
+
+Install `uv` from [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/)
+
+```bash
+# Create virtual environment and install dependencies
+uv sync
+
+# Activate virtual environment (macOS/Linux)
+source .venv/bin/activate
+
+# Or use uv run to execute commands directly
+uv run python src/main.py <VIDEO_URL>
+```
+
+#### Option 2: Using `venv`
 
 Create and activate a virtual environment:
 
@@ -47,12 +64,39 @@ source venv/bin/activate
 pip install -r src/requirements.txt
 ```
 
-### Ollama
+### LM Studio
 
-Make sure Ollama is running:
+Make sure LM Studio is running and a model is loaded:
+
+1. Download and install [LM Studio](https://lmstudio.ai/)
+2. Open LM Studio and load a model (recommended: `llama3`, `mistral`, or `neural-chat`)
+3. Start the local server (usually runs on `http://localhost:1234/v1` by default)
+
+#### Configuration
+
+Create a `.env` file in the project root to configure LM Studio connection:
+
 ```bash
-ollama serve
+cp .env.example .env
 ```
+
+Edit `.env` with your LM Studio settings:
+
+```bash
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
+LM_STUDIO_API_KEY=not-needed
+LM_STUDIO_MODEL=local-model
+```
+
+Or set environment variables directly:
+
+```bash
+export LM_STUDIO_BASE_URL="http://localhost:1234/v1"
+export LM_STUDIO_API_KEY="not-needed"
+export LM_STUDIO_MODEL="local-model"
+```
+
+
 
 ## 🚀 Usage
 
@@ -61,22 +105,25 @@ python main.py <VIDEO_URL> [options]
 ```
 
 ### 🧠 Options
+
 | Argument                    | Description                                                                         | Default          |
 |-----------------------------|-------------------------------------------------------------------------------------|------------------|
 | `url`                       | Video URL (YouTube, TikTok, Instagram)                                              | **Required**     |
 | `--transcript-model`, `-tm` | Transcription model: `faster-whisper` or `openai-whisper`                           | `faster-whisper` |
 | `--lang`, `-l`              | Language code (`en`, `es`, `fr`, etc.)                                              | `en`             |
-| `--llm-model`               | LLM model for organizing transcription (`gemma3`, `llama3`, `mistral`, etc.)        | `gemma3`         |
+| `--llm-model`               | LLM model loaded in LM Studio (e.g., `llama3`, `mistral`, `neural-chat`)            | `local-model`    |
 | `--enrich-text`             | Enable internet research to enrich the content with additional context              | `False`          |
 
 ### 📺 Examples
 
 Basic transcription and AI summary:
+
 ```bash
 python src/main.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 With custom models and language:
+
 ```bash
 python src/main.py "https://www.tiktok.com/@love1980songs/video/7523531141589126414" \
   --model openai-whisper \
@@ -85,6 +132,7 @@ python src/main.py "https://www.tiktok.com/@love1980songs/video/7523531141589126
 ```
 
 With internet enrichment for comprehensive analysis:
+
 ```bash
 python src/main.py "https://www.youtube.com/watch?v=educational_video" \
   --llm-model llama3 \
@@ -120,7 +168,8 @@ outputs/
     └── transcription_by_topic.md  # Structured Markdown summary
 ```
 
-### Output Features:
+### Output Features
+
 - **Transcriptions**: Clean, timestamped text files for archival and reference
 - **Summaries**: AI-organized Markdown files with:
   - Structured headings and sections
@@ -130,16 +179,19 @@ outputs/
 
 ## 🔧 Available LLM Models
 
-Popular models you can use with `--llm-model`:
-- `gemma3` (default - balanced performance)
-- `llama3` (high quality analysis)
-- `mistral` (fast and efficient)
+Popular models you can load in LM Studio with `--llm-model`:
 
-Pull models with: `ollama pull <model_name>`
+- `llama3` (high quality, recommended)
+- `mistral` (fast and efficient)
+- `neural-chat` (optimized for conversation)
+- Any other GGUF model compatible with LM Studio
+
+Download models directly in LM Studio from Hugging Face or load them from the local file system.
 
 ## 🌐 Internet Enrichment
 
 When `--enrich-text` is enabled, the AI will:
+
 - Research topics mentioned in the video
 - Provide additional context and background information
 - Include relevant links and references
