@@ -71,5 +71,10 @@ Do not include any disclaimer or notes that are not part of the main topic.
             temperature=0.2,
             stream=False
         )
+
+        if not response.choices or len(response.choices) == 0:
+            raise Exception("No response from LM Studio API")
+        if not response.choices[0].message or not response.choices[0].message.content:
+            raise Exception("Invalid response format from LM Studio API")
         
         return response.choices[0].message.content
