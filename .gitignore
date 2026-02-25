@@ -30,6 +30,7 @@ uv.lock
 
 ## Temporary files
 /tmp
+*.part
 
 ## OS generated files
 .DS_Store
