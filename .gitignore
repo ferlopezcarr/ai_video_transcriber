@@ -36,17 +36,7 @@ uv.lock
 .DS_Store
 
 ## Transcription outputs
-outputs/**/*.txt
-outputs/**/*.srt
-outputs/**/*.vtt
-
-outputs/**/*.jpg
-outputs/**/*.jpeg
-outputs/**/*.png
-
-outputs/**/*.md
-outputs/**/*.json
-outputs/**/*.csv
+outputs/
 
 ## Audio outputs
 *.wav
