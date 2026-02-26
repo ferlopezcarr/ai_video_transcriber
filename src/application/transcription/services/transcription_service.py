@@ -12,13 +12,15 @@ def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = '
     :param lang: The language code for the transcription.
     """
     def _detect_platform(url: str):
-        if 'youtube.com' in url or 'youtu.be' in url:
+        if 'youtu.be' in url:
             return 'youtube'
-        elif 'tiktok.com' in url:
+        elif 'tiktok' in url:
             return 'tiktok'
-        elif 'instagram.com' in url:
+        elif 'instagram' in url:
             return 'instagram'
-        return 'unknown'
+        else:
+            # Get main domain from URL and use it as platform name
+            return url.split('//')[-1].split('/')[0].split('?')[0]
     
     def _getAudioTranscriber(audo_transcriber_model: str):
         if audo_transcriber_model == 'openai-whisper':
@@ -32,7 +34,25 @@ def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = '
         file_storage: FileStoragePort = LocalFileStorage()
         transcription_file_name: str = video_name if video_name else 'transcription_summary'
         return file_storage.save(data=transcription, file_path=f"transcriptions/{transcription_file_name}.txt")
+    
+    def _checkExistingTranscription(video_name: str | None) -> str | None:
+        """Check if a transcription already exists for this video."""
+        if not video_name:
+            return None
+        file_storage: FileStoragePort = LocalFileStorage()
+        file_path = f"transcriptions/{video_name}.txt"
+        if file_storage.exists(file_path):
+            print(f"\n📄 Found existing transcription: {file_path}")
+            print("✅ Loading cached transcription...")
+            return file_storage.read(file_path)
+        return None
 
+    # Check if transcription already exists
+    existing_transcription = _checkExistingTranscription(video_name)
+    if existing_transcription:
+        return existing_transcription
+
+    print("\n🎬 No cached transcription found. Processing video...")
     video_downloader: VideoDownloaderPort = VideoDownloader()
 
     platform = _detect_platform(url)
@@ -41,11 +61,19 @@ def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = '
     if platform == 'youtube':
         text = video_downloader.download_subtitles(url, lang)
         if text:
+            _saveTranscription(text)
             return text
 
     audio_path = video_downloader.download_audio(url)
 
     audio_transcriber: AudioTranscriberPort = _getAudioTranscriber(audo_transcriber_model)
     transcription = audio_transcriber.transcribe(audio_path, lang)
-    _saveTranscription(transcription)
-    return transcription
+    
+    # Handle both string and list responses from transcriber
+    if isinstance(transcription, list):
+        transcription_text = '\n'.join(str(segment) for segment in transcription)
+    else:
+        transcription_text = transcription
+    
+    _saveTranscription(transcription_text)
+    return transcription_text
