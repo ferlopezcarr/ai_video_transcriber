@@ -3,6 +3,41 @@ from openai import OpenAI, APITimeoutError, APIConnectionError
 from infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
 
 
+def calculate_min_summary_lines(duration_seconds: int, 
+                                 base_lines: int = 50,
+                                 lines_per_minute: float = 15.0,
+                                 max_lines: int = 2000,
+                                 min_lines: int = 20) -> int:
+    """
+    Calculate the minimum number of lines for a summary based on video duration.
+    
+    This function can be adjusted to fine-tune summary length requirements.
+    
+    :param duration_seconds: Video duration in seconds
+    :param base_lines: Minimum lines for very short videos
+    :param lines_per_minute: Additional lines per minute of video
+    :param max_lines: Maximum lines cap (to prevent extremely long summaries)
+    :param min_lines: Minimum lines floor (even for very short videos)
+    :return: Recommended minimum number of lines for the summary
+    
+    Examples:
+        - 5 min video  (300s): 50 + (5 * 15.0) = 125 lines
+        - 15 min video (900s): 50 + (15 * 15.0) = 275 lines
+        - 17 min video (1020s): 50 + (17 * 15.0) = 305 lines
+        - 30 min video (1800s): 50 + (30 * 15.0) = 500 lines
+        - 60 min video (3600s): 50 + (60 * 15.0) = 950 lines
+        - 120 min video (7200s): 50 + (120 * 15.0) = 1850 lines
+    """
+    if not duration_seconds or duration_seconds <= 0:
+        return base_lines
+    
+    duration_minutes = duration_seconds / 60
+    calculated_lines = int(base_lines + (duration_minutes * lines_per_minute))
+    
+    # Apply bounds
+    return max(min_lines, min(calculated_lines, max_lines))
+
+
 class SummarizerLMStudioAgent(SummarizerAgent):
     def __init__(self, model: str):
         """
@@ -17,7 +52,7 @@ class SummarizerLMStudioAgent(SummarizerAgent):
         self.client = OpenAI(
             base_url= self.base_url,
             api_key = os.getenv('LM_STUDIO_API_KEY', ''),
-            timeout = float(os.getenv('LM_STUDIO_TIMEOUT', '300.0'))
+            timeout = float(os.getenv('LM_STUDIO_TIMEOUT', '1800.0'))  # 30 minutes default for long summaries
         )
         
         # Perform health check with short timeout
@@ -85,41 +120,80 @@ Error: {str(e)}
 
 
     def organize_transcription(self, transcription: str, video_info: dict, lang: str, enrich_text: bool = False) -> str:
+        # Calculate minimum lines based on video duration
+        video_duration = video_info.get('duration', 0) if video_info else 0
+        min_lines = calculate_min_summary_lines(video_duration)
+        
+        # Format duration for display
+        duration_str = ""
+        if video_duration:
+            minutes = video_duration // 60
+            seconds = video_duration % 60
+            duration_str = f"{minutes}:{seconds:02d}"
+            print(f"📊 Video duration: {duration_str} (~{minutes} min) → Required minimum: {min_lines} lines")
+        
         video_info_str = ""
         if video_info:
             video_info_str = "Video Information:\n" + "\n".join(f"- {k}: {v}" for k, v in video_info.items()) + "\n\n"
         
         prompt = (
-            """
-            Main objective: Organise the video information and transcription into a course document so that it can be understood more easily.
+            f"""
+            Main objective: Organise the video information and transcription into a COMPREHENSIVE, DETAILED course document.
+
+            ⚠️ CRITICAL LENGTH REQUIREMENT ⚠️
+            * Your response MUST contain AT LEAST {min_lines} lines total (including all content).
+            * This is based on video duration ({video_duration//60} minutes requires {min_lines}+ lines).
+            * Every line counts: headers, text, bullets, code blocks, table rows, blank lines between sections.
+            * DO NOT summarize or condense - expand each point with full explanations, examples, and details.
+            * If your output has fewer than {min_lines} lines, it will be REJECTED and you must regenerate.
+
+            Required level of detail:
+            * For EACH major topic: minimum 30-50 lines of detailed explanation
+            * Include ALL examples, code snippets, commands, and use cases mentioned
+            * Expand on technical concepts with thorough explanations
+            * Add subsections for different aspects of each topic
+            * Include "Why this matters", "Common pitfalls", "Best practices" for key points
+            * Don't skip any information from the transcription - be exhaustive
 
             Instructions:
-            * Do not mention that the summary comes from a video; simply use the transcription as a source of information for the course.
-            * If the video information is provided, use it to enrich the context of the transcription.
-            * If the transcription is very long, ensure that the response covers ALL the points discussed.
-            * The output MUST be in """ + lang + """ language, even if the transcription is in another language.
+            * Do not mention that the summary comes from a video; simply use the transcription as source material.
+            * Extract and expand EVERY concept, example, tool, and technique mentioned
+            * The output MUST be in {lang} language, even if the transcription is in another language.
             
-            Output:
-            * The response must be valid Markdown with proper headings (#, ##, ###), bullet lists, code snippets (```), and formatting.
+            Output format:
+            * Valid Markdown with proper headings (#, ##, ###), bullet lists, code blocks (```), tables, and formatting.
             
-            Output structure:
-            * Title: Usually the title is similar or equal to the video title.
-            * Summary: A brief summary of the transcription, capturing the main points discussed in the video. 
-                Include in a new line at the end of the summary with the video platform and the url ('webpage_url'), for example: Source: [Youtube Link](<webpage_url>)
-            * Index: Create an index after the summary to organize and give structure to the content.
-            * Then for each topic, create a section with a title and bullet points, use only paragraphs if needed.
-            * Conclusion: After the topics, include the conclusions drawn from the transcription.
-            * If there are ideas or concepts that could not be categorized into a specific topic, create a section called "Additional Notes" at the end.
+            Required sections (expand each significantly):
+            * Title: Based on video title
+            * Summary: Comprehensive overview covering all major themes (minimum 10 lines)
+                Include at the end: Source: [Youtube Link](<webpage_url>)
+            * Detailed Index: Multi-level structure showing all topics and subtopics
+            * For EACH topic: Create extensive sections with:
+              - Introduction to the concept
+              - Detailed explanations with examples
+              - Code snippets or commands (in code blocks)
+              - Use cases and practical applications
+              - Tips, warnings, or best practices
+              - Related concepts or tools
+            * Conclusion: Thorough wrap-up of key learnings
+            * Additional Notes: Any extra information not categorized elsewhere
             """
             + "\nVideo information:\n" + video_info_str
             + "\nTranscription:\n" + transcription
         )
 
-        system_prompt = """You are a professional teacher and researcher with years of experience creating courses and guidelines used by millions of students.
-You always provide clear and concise information, well-structured and organized.
-You always ensure that no detail or information is lost.
-You are also an expert in Markdown formatting, so you use headings, bullet points, code snippets, and other formatting features to make the document easy to read and understand.
-You sometimes use emojis to make the document more engaging, but only when appropriate and relevant to the content.
+        system_prompt = """You are a professional teacher and researcher with years of experience creating COMPREHENSIVE, DETAILED courses and guidelines.
+Your style is THOROUGH and EXHAUSTIVE - you never skip details or condense information unnecessarily.
+You always ensure that NO detail or information is lost from the source material.
+You are also an expert in Markdown formatting, so you use headings, bullet points, code snippets, tables, and other formatting features.
+You sometimes use emojis to make the document more engaging, but only when appropriate.
+
+IMPORTANT: When given a minimum line count requirement, you MUST meet or exceed it by:
+- Providing comprehensive explanations for every concept
+- Including all examples, code snippets, and use cases
+- Adding subsections to break down complex topics
+- Expanding on implications, best practices, and common pitfalls
+- Being verbose and detailed rather than concise
 """
         
         if enrich_text:

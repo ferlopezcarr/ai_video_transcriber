@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import re
 
 from infrastructure.inbound.console.adapters.console_user_input_adapter import ConsoleUserInputAdapter
 from infrastructure.inbound.console.ports.user_input_port import UserInputPort
@@ -10,6 +11,17 @@ from infrastructure.outbound.file_storage.ports.file_storage_port import FileSto
 
 load_dotenv()
 
+def extract_video_id(url: str) -> str:
+    """Extract video ID from YouTube URL as fallback."""
+    patterns = [
+        r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([^&?/\s]+)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return "video"
+
 # === Main ===
 def main():
     # Dependencies
@@ -18,8 +30,20 @@ def main():
 
     # Get video metadata (lightweight operation, just fetches info)
     print("\n📹 Fetching video information...")
-    video_info = get_video_info(args.url)
-    video_title = video_info.get('title')
+    try:
+        video_info = get_video_info(args.url)
+        video_title = video_info.get('title')
+    except Exception as e:
+        print(f"\n⚠️  Could not fetch video info: {str(e)[:100]}...")
+        print("   This may be due to YouTube bot detection.")
+        print("   Continuing with fallback video ID...\n")
+        video_id = extract_video_id(args.url)
+        video_title = f"video_{video_id}"
+        video_info = {
+            'title': video_title,
+            'duration': 0,
+            'webpage_url': args.url,
+        }
     
     # Check if this video has already been processed
     file_storage: FileStoragePort = LocalFileStorage()
