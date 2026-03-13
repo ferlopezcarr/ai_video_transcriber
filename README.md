@@ -54,8 +54,8 @@ source .venv/bin/activate
 ```bash
 git clone https://github.com/ferlopezcarr/video_transcriber.git
 cd video_transcriber
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
@@ -79,8 +79,11 @@ LM_STUDIO_TIMEOUT=300.0
 ### Basic Command
 
 ```bash
-python src/main.py <VIDEO_URL> [OPTIONS]
+python -m src.main <VIDEO_URL> [OPTIONS]
 ```
+
+Important: if you installed with `uv sync`, use `uv run` or activate `.venv` first.
+Running plain `python` without activation may use a different interpreter and miss dependencies.
 
 ### Command-Line Options
 
@@ -96,17 +99,17 @@ python src/main.py <VIDEO_URL> [OPTIONS]
 
 **Basic usage:**
 ```bash
-python src/main.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python -m src.main "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 **Spanish output:**
 ```bash
-python src/main.py "https://www.youtube.com/watch?v=video_id" --lang es
+python -m src.main "https://www.youtube.com/watch?v=video_id" --lang es
 ```
 
 **With uv (no activation needed):**
 ```bash
-uv run python src/main.py "https://www.youtube.com/watch?v=video_id"
+uv run python -m src.main "https://www.youtube.com/watch?v=video_id"
 ```
 
 ### Smart Caching

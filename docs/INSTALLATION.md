@@ -87,8 +87,11 @@ source .venv/bin/activate  # macOS/Linux
 With `uv`, you can run commands without activating the environment:
 
 ```bash
-uv run python src/main.py "https://www.youtube.com/watch?v=video_id"
+uv run python -m src.main "https://www.youtube.com/watch?v=video_id"
 ```
+
+If you run plain `python`, activate `.venv` first. Otherwise your shell may use a different
+Python interpreter and fail with missing modules (for example `ModuleNotFoundError: dotenv`).
 
 ### Option 2: Using Traditional `venv` & `pip`
 
@@ -137,7 +140,7 @@ ffmpeg -version
 pip list | grep -E "yt-dlp|whisper|openai|dotenv"
 
 # Test the application
-python src/main.py --help
+python -m src.main --help
 ```
 
 You should see the help message with all available options.

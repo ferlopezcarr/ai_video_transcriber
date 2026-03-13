@@ -1,8 +1,8 @@
-from infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
-from infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
-from infrastructure.outbound.transcriber.ports.audio_transcriber_port import AudioTranscriberPort
-from infrastructure.outbound.video_downloader.adapters.video_downloader import VideoDownloader
-from infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
+from src.infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
+from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
+from src.infrastructure.outbound.transcriber.ports.audio_transcriber_port import AudioTranscriberPort
+from src.infrastructure.outbound.video_downloader.adapters.video_downloader import VideoDownloader
+from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
 
 def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = 'faster-whisper', lang: str = 'en'):
     """
@@ -24,10 +24,10 @@ def transcribe(url: str, video_name: str | None, audo_transcriber_model: str = '
     
     def _getAudioTranscriber(audo_transcriber_model: str):
         if audo_transcriber_model == 'openai-whisper':
-            from infrastructure.outbound.transcriber.adapters.openai_whisper_audio_transcriber import OpenAiWhisperAudioTranscriberAdapter
+            from src.infrastructure.outbound.transcriber.adapters.openai_whisper_audio_transcriber import OpenAiWhisperAudioTranscriberAdapter
             return OpenAiWhisperAudioTranscriberAdapter()
         else:
-            from infrastructure.outbound.transcriber.adapters.faster_whisper_audio_transcriber import FasterWhisperAudioTranscriber
+            from src.infrastructure.outbound.transcriber.adapters.faster_whisper_audio_transcriber import FasterWhisperAudioTranscriber
             return FasterWhisperAudioTranscriber()
     
     def _saveTranscription(transcription: str) -> str:

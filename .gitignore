@@ -14,7 +14,7 @@
 ## Python
 **/__pycache__
 **/venv/
-.venv/
+**/.venv/
 uv.lock
 
 ## Build output

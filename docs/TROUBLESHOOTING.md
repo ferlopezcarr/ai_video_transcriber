@@ -111,7 +111,7 @@ LM_STUDIO_TIMEOUT=600.0
 
 Or use command-line override:
 ```bash
-python src/main.py "video_url" --timeout 600
+python -m src.main "video_url" --timeout 600
 ```
 
 #### 2. Long video taking too long
@@ -176,7 +176,7 @@ Wait a few seconds after starting the server:
 ```bash
 # Start server, then wait
 sleep 5
-python src/main.py "video_url"
+python -m src.main "video_url"
 ```
 
 #### 2. API endpoint misconfigured
@@ -237,18 +237,42 @@ yt-dlp --version
 
 Some platforms require cookies:
 ```bash
-# Export cookies from browser (using browser extension)
-# Then use with yt-dlp
-python src/main.py "video_url" --cookies cookies.txt
+# Export cookies to Netscape cookies.txt (using a browser extension)
+# Then point the app to that file
+export YT_DLP_COOKIES_FILE=/absolute/path/to/cookies.txt
+python -m src.main "video_url"
 ```
 
 For YouTube age-restricted videos:
 ```bash
-# Add cookies to yt-dlp
-yt-dlp --cookies-from-browser chrome "video_url"
+# Verify cookies file works directly with yt-dlp
+yt-dlp --cookies /absolute/path/to/cookies.txt "video_url"
 ```
 
-#### 4. Geographic restrictions
+#### 4. Error: "The page needs to be reloaded"
+
+```text
+ERROR: [youtube] <video_id>: The page needs to be reloaded.
+```
+
+This is typically YouTube bot-detection.
+
+**Solution:**
+```bash
+# 1) Keep yt-dlp updated
+uv pip install --upgrade yt-dlp
+
+# 2) Prefer running without browser cookies for public videos
+unset YT_DLP_COOKIES_FILE
+
+# 3) Install a JavaScript runtime (recommended: deno)
+brew install deno
+
+# 4) Retry
+python -m src.main "video_url"
+```
+
+#### 5. Geographic restrictions
 
 **Solution:**
 
@@ -258,7 +282,7 @@ Use a VPN or proxy:
 export HTTP_PROXY=http://proxy:port
 export HTTPS_PROXY=http://proxy:port
 
-python src/main.py "video_url"
+python -m src.main "video_url"
 ```
 
 ### Error: "Transcription failed"
@@ -301,7 +325,7 @@ ffmpeg -version
 
 ```bash
 rm outputs/audio/*
-python src/main.py "video_url"
+python -m src.main "video_url"
 ```
 
 #### 3. Unsupported audio format
@@ -550,6 +574,9 @@ pip install python-dotenv
 python -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.getenv('LM_STUDIO_BASE_URL'))"
 ```
 
+If dependencies were installed with `uv sync`, run with `uv run` or activate `.venv` first.
+Running plain `python` from another interpreter can still produce `ModuleNotFoundError`.
+
 #### 3. Wrong working directory
 
 **Solution:**
@@ -560,7 +587,7 @@ Ensure you're in the project root:
 cd /path/to/video_transcriber
 
 # Run from there
-python src/main.py "video_url"
+python -m src.main "video_url"
 ```
 
 ## Performance Issues
@@ -662,7 +689,7 @@ curl http://localhost:1234/v1/models
 python -c "import faster_whisper; print(faster_whisper.__version__)"
 
 # Check logs
-python src/main.py "video_url" --verbose  # If implemented
+python -m src.main "video_url" --verbose  # If implemented
 ```
 
 ### Enable Debug Mode

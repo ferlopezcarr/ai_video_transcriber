@@ -1,13 +1,13 @@
 from dotenv import load_dotenv
 import re
 
-from infrastructure.inbound.console.adapters.console_user_input_adapter import ConsoleUserInputAdapter
-from infrastructure.inbound.console.ports.user_input_port import UserInputPort
-from application.transcription.services.transcription_service import transcribe
-from application.transcription.services.video_downloader_service import get_video_info
-from application.transcription.services.llm_markdown_service import transcription_to_markdown
-from infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
-from infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
+from src.infrastructure.inbound.console.adapters.console_user_input_adapter import ConsoleUserInputAdapter
+from src.infrastructure.inbound.console.ports.user_input_port import UserInputPort
+from src.application.transcription.services.transcription_service import transcribe
+from src.application.transcription.services.video_downloader_service import get_video_info
+from src.application.transcription.services.llm_markdown_service import transcription_to_markdown
+from src.infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
+from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 
 load_dotenv()
 

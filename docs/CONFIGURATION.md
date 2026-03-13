@@ -20,7 +20,7 @@ nano .env  # or use your preferred editor
 
 3. Test your configuration:
 ```bash
-python src/main.py --help
+python -m src.main --help
 ```
 
 ## Configuration File (`.env`)
@@ -36,6 +36,20 @@ LM_STUDIO_MODEL=local-model
 # Timeout in seconds for LM Studio API requests
 # Increase for very long videos or slower systems
 LM_STUDIO_TIMEOUT=300.0
+
+# Optional: path to Netscape cookies.txt for age-restricted videos
+# Leave unset for normal public videos
+# YT_DLP_COOKIES_FILE=/absolute/path/to/cookies.txt
+```
+
+### YouTube Downloader Notes
+
+- For public YouTube videos, leave `YT_DLP_COOKIES_FILE` unset.
+- If YouTube videos are age-restricted, provide a cookies file:
+
+```bash
+export YT_DLP_COOKIES_FILE=/absolute/path/to/cookies.txt
+python -m src.main "https://www.youtube.com/watch?v=video_id"
 ```
 
 ## Configuration Options
@@ -229,7 +243,7 @@ Some settings can be configured both ways.The command-line option takes preceden
 LM_STUDIO_MODEL=llama3-8b
 
 # Command line overrides .env
-python src/main.py "video_url" --llm-model mistral-7b
+python -m src.main "video_url" --llm-model mistral-7b
 # Uses: mistral-7b (from command line)
 ```
 
@@ -253,10 +267,10 @@ Then use environment variable selection:
 
 ```bash
 # Use dev config
-LM_STUDIO_BASE_URL=$LM_STUDIO_BASE_URL_DEV python src/main.py "url"
+LM_STUDIO_BASE_URL=$LM_STUDIO_BASE_URL_DEV python -m src.main "url"
 
 # Use prod config
-LM_STUDIO_BASE_URL=$LM_STUDIO_BASE_URL_PROD python src/main.py "url"
+LM_STUDIO_BASE_URL=$LM_STUDIO_BASE_URL_PROD python -m src.main "url"
 ```
 
 ### Network Configuration

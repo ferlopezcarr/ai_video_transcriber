@@ -1,5 +1,5 @@
 import argparse
-from infrastructure.inbound.console.ports.user_input_port import UserInputPort
+from src.infrastructure.inbound.console.ports.user_input_port import UserInputPort
 
 class ConsoleUserInputAdapter(UserInputPort):
     def get_user_input(self) -> argparse.Namespace:

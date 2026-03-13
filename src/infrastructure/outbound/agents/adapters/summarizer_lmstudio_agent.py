@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI, APITimeoutError, APIConnectionError
-from infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
+from src.infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
 
 
 def calculate_min_summary_lines(duration_seconds: int, 

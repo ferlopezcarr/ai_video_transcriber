@@ -1,4 +1,4 @@
-from infrastructure.outbound.transcriber.ports.audio_transcriber_port import AudioTranscriberPort
+from src.infrastructure.outbound.transcriber.ports.audio_transcriber_port import AudioTranscriberPort
 
 class FasterWhisperAudioTranscriber(AudioTranscriberPort):
     def transcribe(self, audio_path: str, _) -> str:

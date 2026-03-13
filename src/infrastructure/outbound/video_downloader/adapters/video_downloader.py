@@ -2,41 +2,20 @@ import os
 import re
 from typing import LiteralString
 import yt_dlp
-from infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
+from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
 
 class VideoDownloader(VideoDownloaderPort):
     def _get_base_opts(self) -> dict:
         """
-        Get base yt-dlp options with cookie support to avoid bot detection.
-        Uses browser cookies (tries Chrome first, then Firefox, then others).
-        Set YT_DLP_COOKIES_BROWSER env var to specify browser (e.g., 'chrome', 'firefox', 'safari').
+        Get base yt-dlp options. Uses android_vr client by default (yt-dlp default)
+        which avoids YouTube bot detection for public videos.
+        Set YT_DLP_COOKIES_FILE to a Netscape cookies.txt path for age-restricted content.
         """
-        browser = os.getenv('YT_DLP_COOKIES_BROWSER', 'chrome')
-        opts = {
-            # Use iOS and Android TV clients to avoid bot detection
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['ios', 'android', 'web'],
-                    'skip': ['hls', 'dash'],
-                }
-            },
-            # Add headers to mimic real browser
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-                'Sec-Fetch-Mode': 'navigate',
-            },
-        }
-        
-        # Try to use cookies from browser to avoid bot detection
-        try:
-            opts['cookiesfrombrowser'] = (browser,)
-            print(f"🍪 Using cookies from {browser} browser")
-        except Exception as e:
-            print(f"⚠️  Could not load cookies from {browser}: {str(e)}")
-            print("   Continuing without cookies - may fail on some videos")
-        
+        opts = {}
+        cookies_file = os.getenv('YT_DLP_COOKIES_FILE')
+        if cookies_file and os.path.exists(cookies_file):
+            opts['cookiefile'] = cookies_file
+            print(f"🍪 Using cookies from file: {cookies_file}")
         return opts
     
     def _clean_vtt(self, file_path: str):

@@ -1,5 +1,5 @@
-from infrastructure.outbound.video_downloader.adapters.video_downloader import VideoDownloader
-from infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
+from src.infrastructure.outbound.video_downloader.adapters.video_downloader import VideoDownloader
+from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
 
 def get_video_info(url: str) -> dict:
     """

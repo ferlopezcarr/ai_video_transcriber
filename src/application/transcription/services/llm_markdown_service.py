@@ -1,7 +1,7 @@
-from infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
-from infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import SummarizerLMStudioAgent
-from infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
-from infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
+from src.infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
+from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import SummarizerLMStudioAgent
+from src.infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
+from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 
 
 def transcription_to_markdown(transcription: str, model: str, video_info: dict, lang: str = 'en', enrich_text: bool = False) -> str:

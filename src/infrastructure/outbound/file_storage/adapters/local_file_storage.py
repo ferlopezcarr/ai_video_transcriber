@@ -1,6 +1,6 @@
 import os
 
-from infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
+from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 
 OUTPUT_PATH = "outputs/"
 
