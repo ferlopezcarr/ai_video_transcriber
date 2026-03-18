@@ -59,11 +59,26 @@ class VideoDownloader(VideoDownloaderPort):
         :return: The path to the downloaded video file.
         """
         print("Downloading audio...")
+
+        # Extract video ID from URL
+        ydl_opts_info = self._get_base_opts()
+        with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
+            info = ydl.extract_info(url, download=False)
+            video_id = info.get("id", "video")
+
+        # Create output directory if it doesn't exist
+        audio_dir = "outputs/audio"
+        os.makedirs(audio_dir, exist_ok=True)
+
+        # Download audio with unique filename
+        audio_filename = f"{video_id}.mp3"
+        audio_path = os.path.join(audio_dir, audio_filename)
+
         ydl_opts = self._get_base_opts()
         ydl_opts.update(
             {
                 "format": "bestaudio/best",
-                "outtmpl": "audio.%(ext)s",
+                "outtmpl": os.path.join(audio_dir, f"{video_id}.%(ext)s"),
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
@@ -75,7 +90,8 @@ class VideoDownloader(VideoDownloaderPort):
         )
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        return "audio.mp3"
+
+        return audio_path
 
     def get_video_info(self, url: str) -> dict:
         """
