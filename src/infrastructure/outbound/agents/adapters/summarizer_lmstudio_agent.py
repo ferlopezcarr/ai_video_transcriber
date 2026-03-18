@@ -1,5 +1,9 @@
 import os
 from openai import OpenAI, APITimeoutError, APIConnectionError
+from rich.live import Live
+from rich.panel import Panel
+from rich.text import Text
+from src.console import console
 from src.infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
 
 
@@ -65,7 +69,7 @@ class SummarizerLMStudioAgent(SummarizerAgent):
 
     def _health_check(self):
         """Perform a health check to verify LM Studio server is responding."""
-        print(f"🔍 Checking connection to LM Studio at {self.base_url}...")
+        console.print(f"🔍 Checking connection to LM Studio at {self.base_url}...")
 
         # Create a temporary client with short timeout for health check
         health_client = OpenAI(
@@ -80,12 +84,14 @@ class SummarizerLMStudioAgent(SummarizerAgent):
             model_names = [model.id for model in models.data]
 
             if model_names:
-                print(f"✅ LM Studio is responding. Available models: {', '.join(model_names[:3])}")
+                console.print(
+                    f"✅ LM Studio is responding. Available models: {', '.join(model_names[:3])}"
+                )
                 if len(model_names) > 3:
-                    print(f"   ...and {len(model_names) - 3} more")
+                    console.print(f"   ...and {len(model_names) - 3} more")
             else:
-                print("⚠️  LM Studio is responding but no models are loaded.")
-                print("   Please load a model in LM Studio before processing.")
+                console.print("⚠️  LM Studio is responding but no models are loaded.")
+                console.print("   Please load a model in LM Studio before processing.")
 
         except APITimeoutError:
             error_msg = f"""
@@ -101,7 +107,7 @@ Current configuration:
 - Base URL: {self.base_url}
 - Model: {self.model}
 """
-            print(error_msg)
+            console.print(error_msg)
             raise ConnectionError(error_msg)
 
         except APIConnectionError as e:
@@ -116,12 +122,12 @@ Troubleshooting steps:
 
 Error: {str(e)}
 """
-            print(error_msg)
+            console.print(error_msg)
             raise ConnectionError(error_msg)
 
         except Exception as e:
-            print(f"⚠️  Unexpected error during health check: {str(e)}")
-            print("Continuing anyway, but API calls may fail...")
+            console.print(f"⚠️  Unexpected error during health check: {str(e)}")
+            console.print("Continuing anyway, but API calls may fail...")
 
     def organize_transcription(
         self, transcription: str, video_info: dict, lang: str, enrich_text: bool = False
@@ -136,7 +142,7 @@ Error: {str(e)}
             minutes = video_duration // 60
             seconds = video_duration % 60
             duration_str = f"{minutes}:{seconds:02d}"
-            print(
+            console.print(
                 f"📊 Video duration: {duration_str} (~{minutes} min) → Required minimum: {min_lines} lines"
             )
 
@@ -222,26 +228,43 @@ Do not include any disclaimer or notes that are not part of the main topic.
 """
 
         try:
-            print(f"\n🤖 Connecting to LM Studio at {self.base_url}...")
-            print(f"📝 Processing transcription with model: {self.model}...")
+            console.print(f"\n🤖 Connecting to LM Studio at {self.base_url}...")
+            console.print(f"📝 Processing transcription with model: {self.model}...")
 
-            response = self.client.chat.completions.create(
+            response_stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.2,
-                stream=False,
+                stream=True,
             )
 
-            if not response.choices or len(response.choices) == 0:
-                raise Exception("No response from LM Studio API")
-            if not response.choices[0].message or not response.choices[0].message.content:
-                raise Exception("Invalid response format from LM Studio API")
+            # Stream the response with live updates
+            full_response = ""
+            response_text = Text()
 
-            print("✅ Transcription organized successfully!")
-            return response.choices[0].message.content
+            with Live(
+                Panel(response_text, title="🤖 AI Summary", border_style="green"),
+                console=console,
+                refresh_per_second=4,
+            ) as live:
+                for chunk in response_stream:
+                    if chunk.choices and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if delta.content:
+                            full_response += delta.content
+                            response_text.append(delta.content)
+                            live.update(
+                                Panel(response_text, title="🤖 AI Summary", border_style="green")
+                            )
+
+            if not full_response:
+                raise Exception("No response from LM Studio API")
+
+            console.print("\n✅ Transcription organized successfully!")
+            return full_response
 
         except APITimeoutError as e:
             error_msg = f"""
@@ -258,7 +281,7 @@ Current configuration:
 - Base URL: {self.base_url}
 - Model: {self.model}
 """
-            print(error_msg)
+            console.print(error_msg)
             raise Exception(error_msg) from e
 
         except APIConnectionError as e:
@@ -273,5 +296,5 @@ Troubleshooting steps:
 
 Error: {str(e)}
 """
-            print(error_msg)
+            console.print(error_msg)
             raise Exception(error_msg) from e

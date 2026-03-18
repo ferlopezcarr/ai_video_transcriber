@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import re
 
+from src.console import console
 from src.infrastructure.inbound.console.adapters.console_user_input_adapter import (
     ConsoleUserInputAdapter,
 )
@@ -33,14 +34,14 @@ def main():
     args = user_input.get_user_input()
 
     # Get video metadata (lightweight operation, just fetches info)
-    print("\n📹 Fetching video information...")
     try:
-        video_info = get_video_info(args.url)
+        with console.status("[bold blue]📹 Fetching video information..."):
+            video_info = get_video_info(args.url)
         video_title = video_info.get("title")
     except Exception as e:
-        print(f"\n⚠️  Could not fetch video info: {str(e)[:100]}...")
-        print("   This may be due to YouTube bot detection.")
-        print("   Continuing with fallback video ID...\n")
+        console.print(f"\n⚠️  Could not fetch video info: {str(e)[:100]}...")
+        console.print("   This may be due to YouTube bot detection.")
+        console.print("   Continuing with fallback video ID...\n")
         video_id = extract_video_id(args.url)
         video_title = f"video_{video_id}"
         video_info = {
@@ -58,17 +59,17 @@ def main():
     summary_exists = file_storage.exists(summary_path)
 
     if transcription_exists and summary_exists:
-        print(f"\n✅ Video already fully processed!")
-        print(f"   📄 Transcription: {transcription_path}")
-        print(f"   📝 Summary: {summary_path}")
-        print(f"\n💡 Tip: Delete these files if you want to reprocess the video.")
+        console.print(f"\n✅ Video already fully processed!")
+        console.print(f"   📄 Transcription: {transcription_path}")
+        console.print(f"   📝 Summary: {summary_path}")
+        console.print(f"\n💡 Tip: Delete these files if you want to reprocess the video.")
         return
 
     if transcription_exists:
-        print(f"\n📄 Found existing transcription, skipping video download...")
+        console.print(f"\n📄 Found existing transcription, skipping video download...")
 
     if summary_exists:
-        print(f"\n📝 Found existing summary, will skip LLM processing...")
+        console.print(f"\n📝 Found existing summary, will skip LLM processing...")
 
     transcription = transcribe(
         url=args.url,

@@ -1,10 +1,15 @@
+from src.console import console
 from src.infrastructure.outbound.agents.ports.summarizer_agent import SummarizerAgent
-from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import SummarizerLMStudioAgent
+from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import (
+    SummarizerLMStudioAgent,
+)
 from src.infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
 from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 
 
-def transcription_to_markdown(transcription: str, model: str, video_info: dict, lang: str = 'en', enrich_text: bool = False) -> str:
+def transcription_to_markdown(
+    transcription: str, model: str, video_info: dict, lang: str = "en", enrich_text: bool = False
+) -> str:
     """
     Organize the transcription by topics and return a markdown string using the LLM adapter.
     :param transcription: The transcription text to be organized.
@@ -15,17 +20,19 @@ def transcription_to_markdown(transcription: str, model: str, video_info: dict, 
     """
     fileStorage: FileStoragePort = LocalFileStorage()
     file_path = f"summaries/{video_info.get('title', 'transcription_summary')}.md"
-    
+
     # Check if markdown summary already exists
     if fileStorage.exists(file_path):
-        print(f"\n📄 Found existing summary: {file_path}")
-        print("✅ Loading cached summary...")
+        console.print(f"\n📄 Found existing summary: {file_path}")
+        console.print("✅ Loading cached summary...")
         return file_path
-    
-    print("\n🤖 No cached summary found. Generating new summary...")
-    
+
+    console.print("\n🤖 No cached summary found. Generating new summary...")
+
     summarizerAgent: SummarizerAgent = SummarizerLMStudioAgent(model=model)
 
-    markdown = summarizerAgent.organize_transcription(transcription, video_info=video_info, lang=lang, enrich_text=enrich_text)
-    
-    return fileStorage.save(data=markdown, file_path=file_path) 
+    markdown = summarizerAgent.organize_transcription(
+        transcription, video_info=video_info, lang=lang, enrich_text=enrich_text
+    )
+
+    return fileStorage.save(data=markdown, file_path=file_path)

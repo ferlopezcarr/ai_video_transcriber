@@ -1,3 +1,4 @@
+from src.console import console
 from src.infrastructure.outbound.file_storage.adapters.local_file_storage import LocalFileStorage
 from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 from src.infrastructure.outbound.transcriber.ports.audio_transcriber_port import (
@@ -61,8 +62,8 @@ def transcribe(
         file_storage: FileStoragePort = LocalFileStorage()
         file_path = f"transcriptions/{video_name}.txt"
         if file_storage.exists(file_path):
-            print(f"\n📄 Found existing transcription: {file_path}")
-            print("✅ Loading cached transcription...")
+            console.print(f"\n📄 Found existing transcription: {file_path}")
+            console.print("✅ Loading cached transcription...")
             return file_storage.read(file_path)
         return None
 
@@ -71,11 +72,11 @@ def transcribe(
     if existing_transcription:
         return existing_transcription
 
-    print("\n🎬 No cached transcription found. Processing video...")
+    console.print("\n🎬 No cached transcription found. Processing video...")
     video_downloader: VideoDownloaderPort = VideoDownloader()
 
     platform = _detect_platform(url)
-    print(f"Detected platform: {platform}")
+    console.print(f"Detected platform: {platform}")
 
     if platform == "youtube":
         text = video_downloader.download_subtitles(url, lang)
