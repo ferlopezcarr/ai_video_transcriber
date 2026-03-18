@@ -23,7 +23,7 @@ def transcribe(
     """
 
     def _detect_platform(url: str):
-        if "youtu.be" in url:
+        if "youtu.be" in url or "youtube.com" in url:
             return "youtube"
         elif "tiktok" in url:
             return "tiktok"

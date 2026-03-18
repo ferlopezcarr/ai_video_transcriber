@@ -16,7 +16,7 @@ class TestDetectPlatform:
 
         # Creating a test version of _detect_platform to test in isolation
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -32,7 +32,7 @@ class TestDetectPlatform:
         """Test detection of YouTube URLs with full youtube.com domain."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -41,15 +41,15 @@ class TestDetectPlatform:
             else:
                 return url.split("//")[-1].split("/")[0].split("?")[0]
 
-        # Full YouTube URL should return domain name (not "youtube" keyword)
+        # Full YouTube URL should now return "youtube" (bug fix)
         result = _detect_platform("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-        assert result == "www.youtube.com"
+        assert result == "youtube"
 
     def test_detect_tiktok(self):
         """Test detection of TikTok URLs."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -65,7 +65,7 @@ class TestDetectPlatform:
         """Test detection of Instagram URLs."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -81,7 +81,7 @@ class TestDetectPlatform:
         """Test detection of unknown platform URLs."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -97,7 +97,7 @@ class TestDetectPlatform:
         """Test that query parameters are stripped from unknown platforms."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
@@ -113,7 +113,7 @@ class TestDetectPlatform:
         """Test platform detection when URL has no protocol."""
 
         def _detect_platform(url: str):
-            if "youtu.be" in url:
+            if "youtu.be" in url or "youtube.com" in url:
                 return "youtube"
             elif "tiktok" in url:
                 return "tiktok"
