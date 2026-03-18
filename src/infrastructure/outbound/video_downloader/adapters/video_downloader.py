@@ -2,7 +2,10 @@ import os
 import re
 from typing import LiteralString
 import yt_dlp
-from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import VideoDownloaderPort
+from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import (
+    VideoDownloaderPort,
+)
+
 
 class VideoDownloader(VideoDownloaderPort):
     def _get_base_opts(self) -> dict:
@@ -12,34 +15,36 @@ class VideoDownloader(VideoDownloaderPort):
         Set YT_DLP_COOKIES_FILE to a Netscape cookies.txt path for age-restricted content.
         """
         opts = {}
-        cookies_file = os.getenv('YT_DLP_COOKIES_FILE')
+        cookies_file = os.getenv("YT_DLP_COOKIES_FILE")
         if cookies_file and os.path.exists(cookies_file):
-            opts['cookiefile'] = cookies_file
+            opts["cookiefile"] = cookies_file
             print(f"🍪 Using cookies from file: {cookies_file}")
         return opts
-    
+
     def _clean_vtt(self, file_path: str):
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         cleaned = []
         for line in lines:
-            if not re.match(r'\d\d:\d\d:\d\d\.\d+', line) and not line.strip().isdigit():
+            if not re.match(r"\d\d:\d\d:\d\d\.\d+", line) and not line.strip().isdigit():
                 cleaned.append(line.strip())
-        return '\n'.join([l for l in cleaned if l])
+        return "\n".join([l for l in cleaned if l])
 
     def download_subtitles(self, url: str, lang: str) -> LiteralString | None:
         print("Trying to download automatic subtitles from YouTube...")
         ydl_opts = self._get_base_opts()
-        ydl_opts.update({
-            'skip_download': True,
-            'writesubtitles': True,
-            'writeautomaticsub': True,
-            'subtitleslangs': [lang],
-            'outtmpl': '%(title)s.%(ext)s',
-        })
+        ydl_opts.update(
+            {
+                "skip_download": True,
+                "writesubtitles": True,
+                "writeautomaticsub": True,
+                "subtitleslangs": [lang],
+                "outtmpl": "%(title)s.%(ext)s",
+            }
+        )
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(url, download=False)
-            title = result.get('title', 'output')
+            result = ydl.extract_info(url, download=True)
+            title = result.get("title", "output")
         vtt_file = f"{title}.{lang}.vtt"
         if os.path.exists(vtt_file):
             return self._clean_vtt(vtt_file)
@@ -55,18 +60,22 @@ class VideoDownloader(VideoDownloaderPort):
         """
         print("Downloading audio...")
         ydl_opts = self._get_base_opts()
-        ydl_opts.update({
-            'format': 'bestaudio/best',
-            'outtmpl': 'audio.%(ext)s',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        })
+        ydl_opts.update(
+            {
+                "format": "bestaudio/best",
+                "outtmpl": "audio.%(ext)s",
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
+                    }
+                ],
+            }
+        )
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        return 'audio.mp3'
+        return "audio.mp3"
 
     def get_video_info(self, url: str) -> dict:
         """
@@ -78,13 +87,13 @@ class VideoDownloader(VideoDownloaderPort):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
         video_info = {
-            'title': info.get('title'),
-            'duration': info.get('duration'),
-            'uploader': info.get('uploader'),
-            'view_count': info.get('view_count'),
-            'like_count': info.get('like_count'),
-            'description': info.get('description'),
-            'webpage_url': info.get('webpage_url'),
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "uploader": info.get("uploader"),
+            "view_count": info.get("view_count"),
+            "like_count": info.get("like_count"),
+            "description": info.get("description"),
+            "webpage_url": info.get("webpage_url"),
         }
 
         print("\n--- VIDEO INFO ---\n")
