@@ -6,6 +6,8 @@ Complete configuration guide for the Video Transcriber & AI Summarizer.
 
 The application uses environment variables for configuration, managed through a `.env` file for convenience.
 
+**Note:** The current LLM backend is **LM Studio** (local). A cloud LLM provider is planned as a future replacement. Configuration will change when that migration happens.
+
 ## Quick Start
 
 1. Copy the example configuration:
@@ -28,14 +30,14 @@ python -m src.main --help
 ### Complete Example
 
 ```bash
-# LM Studio Configuration
+# LM Studio Configuration (must be explicitly set)
 LM_STUDIO_BASE_URL=http://localhost:1234/v1
-LM_STUDIO_API_KEY=not-needed
-LM_STUDIO_MODEL=local-model
+LM_STUDIO_API_KEY=
+LM_STUDIO_MODEL=openai/gpt-oss-20b
 
 # Timeout in seconds for LM Studio API requests
-# Increase for very long videos or slower systems
-LM_STUDIO_TIMEOUT=300.0
+# Default is 1800.0 (30 minutes) for long videos
+LM_STUDIO_TIMEOUT=1800.0
 
 # Optional: path to Netscape cookies.txt for age-restricted videos
 # Leave unset for normal public videos
@@ -60,7 +62,7 @@ python -m src.main "https://www.youtube.com/watch?v=video_id"
 
 **Purpose:** API endpoint for LM Studio server
 
-**Default:** `http://localhost:1234/v1`
+**Default:** `''` (empty string - must be explicitly set)
 
 **Examples:**
 ```bash
@@ -83,16 +85,16 @@ LM_STUDIO_BASE_URL=http://my-llm-server.local:1234/v1
 
 **Purpose:** API authentication key
 
-**Default:** `not-needed`
+**Default:** `''` (empty string)
 
 **Usage:**
 - LM Studio doesn't require authentication by default
-- Use `not-needed` or any placeholder value
+- Can be left empty or set to any placeholder value
 - If you've configured LM Studio with authentication, provide the actual key
 
 ```bash
-# Default (no auth)
-LM_STUDIO_API_KEY=not-needed
+# Default (no auth) - leave empty
+LM_STUDIO_API_KEY=
 
 # With authentication
 LM_STUDIO_API_KEY=your-secret-key-here
@@ -102,16 +104,16 @@ LM_STUDIO_API_KEY=your-secret-key-here
 
 **Purpose:** Name of the model to use
 
-**Default:** `local-model`
+**Default:** `openai/gpt-oss-20b`
 
 **Usage:**
-- The application auto-detects available models
-- This is used as a fallback or preference
+- Specify the exact model name you want to use
 - Can be overridden with `--llm-model` command-line option
+- The application performs a health check that lists available models on startup
 
 ```bash
-# Use any available model
-LM_STUDIO_MODEL=local-model
+# Use default model
+LM_STUDIO_MODEL=openai/gpt-oss-20b
 
 # Specify exact model
 LM_STUDIO_MODEL=llama3-8b
@@ -130,7 +132,7 @@ curl http://localhost:1234/v1/models
 
 **Purpose:** Request timeout in seconds
 
-**Default:** `300.0` (5 minutes)
+**Default:** `1800.0` (30 minutes)
 
 **Usage:**
 - How long to wait for LLM responses
@@ -142,18 +144,19 @@ curl http://localhost:1234/v1/models
 LM_STUDIO_TIMEOUT=180.0
 
 # Standard (5-20 minute videos)
-LM_STUDIO_TIMEOUT=300.0
-
-# Long videos (20-60 minutes)
 LM_STUDIO_TIMEOUT=600.0
 
-# Very long videos (1+ hour)
+# Long videos (20-60 minutes)
 LM_STUDIO_TIMEOUT=1200.0
+
+# Very long videos (1+ hour) - use default
+LM_STUDIO_TIMEOUT=1800.0
 ```
 
 **Recommendations:**
-- Start with default (300 seconds)
-- Increase if you see timeout errors
+- Default (1800 seconds / 30 minutes) is suitable for long videos
+- Decrease for shorter videos if desired
+- Increase beyond 30 minutes only for extremely long content
 - Monitor LM Studio's processing time during first run
 
 ## LM Studio Setup

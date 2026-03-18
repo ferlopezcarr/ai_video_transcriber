@@ -94,7 +94,7 @@ sudo ufw allow 1234
 ### Error: "Request timed out"
 
 ```
-APITimeoutError: Request timed out after 300.0 seconds
+APITimeoutError: Request timed out after 1800.0 seconds
 ```
 
 **Possible Causes & Solutions:**
@@ -105,13 +105,8 @@ APITimeoutError: Request timed out after 300.0 seconds
 
 Increase timeout in `.env`:
 ```bash
-# For longer videos or slower models
-LM_STUDIO_TIMEOUT=600.0
-```
-
-Or use command-line override:
-```bash
-python -m src.main "video_url" --timeout 600
+# For longer videos or slower models (default: 1800.0 seconds / 30 minutes)
+LM_STUDIO_TIMEOUT=3600.0
 ```
 
 #### 2. Long video taking too long
@@ -255,7 +250,7 @@ yt-dlp --cookies /absolute/path/to/cookies.txt "video_url"
 ERROR: [youtube] <video_id>: The page needs to be reloaded.
 ```
 
-This is typically YouTube bot-detection.
+This is typically YouTube bot-detection. The application has a graceful fallback mechanism when `get_video_info()` fails — it will continue processing using just the video URL without metadata.
 
 **Solution:**
 ```bash
@@ -271,6 +266,8 @@ brew install deno
 # 4) Retry
 python -m src.main "video_url"
 ```
+
+**Note:** If metadata extraction fails due to bot detection, the application will continue processing using the video URL as the identifier. You may see a message: "Failed to get video info (bot detection?): continuing anyway..."
 
 #### 5. Geographic restrictions
 
@@ -324,7 +321,7 @@ ffmpeg -version
 2. Re-download:
 
 ```bash
-rm outputs/audio/*
+rm audio.mp3  # Audio downloads to current working directory
 python -m src.main "video_url"
 ```
 
@@ -367,13 +364,18 @@ ffmpeg -i long_audio.mp3 -f segment -segment_time 600 -c copy part_%03d.mp3
 
 **Solution:**
 
-Use a smaller Whisper model:
+The application already uses the `base` model by default. If you're still experiencing issues, ensure you're using the faster-whisper engine:
 ```python
-# In faster_whisper_audio_transcriber.py
-model = WhisperModel("base", device="cpu")  # Instead of "large-v2"
+# In transcription_service.py
+transcriber = FasterWhisperAudioTranscriber()  # Uses "base" model by default
 ```
 
-Available models: `tiny`, `base`, `small`, `medium`, `large-v2`
+Available models: `tiny`, `base` (default), `small`, `medium`, `large-v2`
+
+To use a smaller model, modify `faster_whisper_audio_transcriber.py`:
+```python
+model = WhisperModel("tiny", device="cpu")  # Smallest, fastest option
+```
 
 #### 3. GPU memory insufficient
 
@@ -426,8 +428,9 @@ ls -la outputs/
 df -h  # macOS/Linux
 wmic logicaldisk get size,freespace,caption  # Windows
 
-# Clean up old files
-rm -rf outputs/temp/*
+# Clean up old transcription and summary files
+rm -rf outputs/transcriptions/*
+rm -rf outputs/summaries/*
 ```
 
 ### Error: "File not found"
@@ -445,8 +448,6 @@ FileNotFoundError: outputs/transcriptions/video_name.txt
 # Create required directories
 mkdir -p outputs/transcriptions
 mkdir -p outputs/summaries
-mkdir -p outputs/metadata
-mkdir -p outputs/audio
 ```
 
 Or let the application create them:
@@ -497,10 +498,12 @@ pyenv local 3.12
 
 **Solution:**
 
-Check `requirements.txt` or `pyproject.toml`:
+Check `pyproject.toml`:
 ```bash
-# Verify package exists
-pip search package-name
+# Verify package exists on PyPI
+pip index versions package-name
+
+# Or visit https://pypi.org/project/package-name/
 ```
 
 #### 3. Network/proxy issues
@@ -584,7 +587,7 @@ Running plain `python` from another interpreter can still produce `ModuleNotFoun
 Ensure you're in the project root:
 ```bash
 # Navigate to project root
-cd /path/to/video_transcriber
+cd /path/to/ai_video_transcriber
 
 # Run from there
 python -m src.main "video_url"
@@ -687,9 +690,6 @@ pip list
 # Test components
 curl http://localhost:1234/v1/models
 python -c "import faster_whisper; print(faster_whisper.__version__)"
-
-# Check logs
-python -m src.main "video_url" --verbose  # If implemented
 ```
 
 ### Enable Debug Mode

@@ -102,8 +102,6 @@ src/
 │       └── file_storage/    # File system adapters
 │           ├── ports/       # Storage interfaces
 │           └── adapters/    # Local file storage
-└── config/                  # Configuration management
-    └── env_service.py       # Environment variables handler
 ```
 
 ## Layers Explained
@@ -134,7 +132,9 @@ Contains **adapters** that connect the application to external systems.
 #### Outbound Adapters (Driven Side)
 **What they do:** Implement port interfaces to interact with external systems
 
-- **Agent Adapters**: Connect to LLM providers (LM Studio)
+- **Agent Adapters**: Connect to LLM providers
+  - Current: LM Studio (local LLM server)
+  - Future: Cloud LLM adapter planned as replacement
 - **Transcriber Adapters**: Implement speech-to-text engines
 - **Video Downloader Adapters**: Handle video platform APIs
 - **File Storage Adapters**: Manage file system operations
@@ -150,7 +150,7 @@ Contains **adapters** that connect the application to external systems.
 
 ### 1. **Flexibility**
 Easy to swap implementations without changing business logic:
-- Switch from LM Studio to OpenAI/Anthropic
+- Switch from LM Studio to cloud LLM provider (OpenAI, Anthropic, etc.)
 - Add database storage alongside file storage
 - Replace CLI with Web UI or API
 
@@ -189,13 +189,13 @@ Clear boundaries and responsibilities:
 
 ## Adding New Adapters
 
-### Example: Adding OpenAI LLM Support
+### Example: Adding Cloud LLM Support
 
 1. **Create new adapter** in `infrastructure/outbound/agents/adapters/`:
    ```python
-   class SummarizerOpenAIAgent(SummarizerAgent):
-       def organize_transcription(...):
-           # OpenAI API implementation
+   class SummarizerCloudAgent(SummarizerAgent):
+       def organize_transcription(self, transcription, video_info, lang, enrich_text):
+           # Cloud LLM API implementation
    ```
 
 2. **No changes needed** to:
@@ -205,8 +205,8 @@ Clear boundaries and responsibilities:
 
 3. **Update configuration** to select adapter:
    ```python
-   if llm_provider == "openai":
-       return SummarizerOpenAIAgent()
+   if llm_provider == "cloud":
+       return SummarizerCloudAgent()
    elif llm_provider == "lmstudio":
        return SummarizerLMStudioAgent()
    ```
@@ -247,11 +247,11 @@ The application implements **smart caching** at multiple levels:
 
 ## Configuration Management
 
-Centralized via `EnvService`:
-- Single source of truth for configuration
-- Type-safe access methods
-- Default values for optional settings
-- Easy to test with mock configurations
+**Decentralized approach:**
+- Each adapter reads environment variables independently via `os.getenv()`
+- No centralized configuration service
+- Configuration values are accessed directly where needed
+- Easy to trace which adapter uses which environment variables
 
 ## Future Architecture Considerations
 

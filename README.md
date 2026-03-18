@@ -31,7 +31,7 @@ Built with **hexagonal architecture** for maintainability and extensibility, fea
 
 - Python 3.12+
 - ffmpeg
-- LM Studio (for AI summaries)
+- LM Studio (for AI summaries - local LLM backend)
 
 ### Installation
 
@@ -39,8 +39,8 @@ Built with **hexagonal architecture** for maintainability and extensibility, fea
 
 ```bash
 # Clone repository
-git clone https://github.com/ferlopezcarr/video_transcriber.git
-cd video_transcriber
+git clone https://github.com/ferlopezcarr/ai_video_transcriber.git
+cd ai_video_transcriber
 
 # Install dependencies
 uv sync
@@ -52,8 +52,8 @@ source .venv/bin/activate
 **Using pip:**
 
 ```bash
-git clone https://github.com/ferlopezcarr/video_transcriber.git
-cd video_transcriber
+git clone https://github.com/ferlopezcarr/ai_video_transcriber.git
+cd ai_video_transcriber
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -e .
@@ -66,10 +66,10 @@ pip install -e .
 3. Edit `.env` with your LM Studio server address
 
 ```bash
-LM_STUDIO_BASE_URL=http://localhost:1234/v1
-LM_STUDIO_API_KEY=not-needed
+LM_STUDIO_BASE_URL=''
+LM_STUDIO_API_KEY=''
 LM_STUDIO_MODEL=local-model
-LM_STUDIO_TIMEOUT=300.0
+LM_STUDIO_TIMEOUT=1800.0
 ```
 
 **See [Configuration Guide](docs/CONFIGURATION.md) for detailed setup.**
@@ -92,7 +92,7 @@ Running plain `python` without activation may use a different interpreter and mi
 | `url` | - | Video URL (YouTube, TikTok, Instagram) | **Required** |
 | `--transcript-model` | `-tm` | Transcription engine: `faster-whisper` or `openai-whisper` | `faster-whisper` |
 | `--lang` | `-l` | Output language code (`en`, `es`, `fr`, `de`, etc.) | `en` |
-| `--llm-model` | `-llm` | LM Studio model name | `local-model` |
+| `--llm-model` | `-llm` | LM Studio model name | `openai/gpt-oss-20b` |
 | `--enrich-text` | `-e` | Enable internet research for richer context | `False` |
 
 ### Examples
@@ -197,7 +197,6 @@ The project follows hexagonal architecture with clean separation between busines
 ```
 src/
 ├── main.py              # Entry point
-├── config/              # Configuration management
 ├── application/         # Business logic
 └── infrastructure/      # External integrations
 ```
@@ -212,6 +211,8 @@ src/
 
 ## 🚀 Future Enhancements
 
+**Roadmap:**
+- [ ] **Cloud LLM Backend**: Replace LM Studio with cloud-based LLM provider for easier setup and better performance
 - [ ] Database integration for transcription search
 - [ ] Web UI for easier interaction
 - [ ] Batch processing for multiple videos

@@ -70,8 +70,8 @@ Or visit [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/) for more optio
 
 ```bash
 # Clone repository
-git clone https://github.com/ferlopezcarr/video_transcriber.git
-cd video_transcriber
+git clone https://github.com/ferlopezcarr/ai_video_transcriber.git
+cd ai_video_transcriber
 
 # Install dependencies (creates .venv and installs everything)
 uv sync
@@ -97,22 +97,22 @@ Python interpreter and fail with missing modules (for example `ModuleNotFoundErr
 
 #### Clone Repository
 ```bash
-git clone https://github.com/ferlopezcarr/video_transcriber.git
-cd video_transcriber
+git clone https://github.com/ferlopezcarr/ai_video_transcriber.git
+cd ai_video_transcriber
 ```
 
 #### Create Virtual Environment
 
 **macOS/Linux:**
 ```bash
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
 **Windows:**
 ```cmd
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
 #### Install Dependencies
@@ -120,9 +120,6 @@ venv\Scripts\activate
 ```bash
 # Install in development mode
 pip install -e .
-
-# Or install from requirements (if available)
-pip install -r requirements.txt
 ```
 
 ## Verify Installation
@@ -304,16 +301,14 @@ uv pip install --upgrade package-name
 deactivate
 
 # Remove the entire environment
-rm -rf .venv  # for uv
-# or
-rm -rf venv   # for pip
+rm -rf .venv
 ```
 
 ### Remove Application
 
 ```bash
 cd ..
-rm -rf video_transcriber
+rm -rf ai_video_transcriber
 ```
 
 ## Next Steps

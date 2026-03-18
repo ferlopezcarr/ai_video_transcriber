@@ -8,19 +8,10 @@ Guide for developers contributing to or extending the Video Transcriber & AI Sum
 
 ```bash
 # Clone repository
-git clone https://github.com/ferlopezcarr/video_transcriber.git
-cd video_transcriber
+git clone https://github.com/ferlopezcarr/ai_video_transcriber.git
+cd ai_video_transcriber
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# or
-venv\Scripts\activate      # Windows
-
-# Install in development mode
-pip install -e .[dev]
-
-# Or with uv
+# Install with uv (recommended)
 uv sync --all-extras
 ```
 
@@ -29,29 +20,23 @@ uv sync --all-extras
 The project uses modern Python development tools:
 
 ```bash
-pip install black ruff pytest pytest-cov mypy
+pip install black ruff pytest
 ```
 
 **Tool Overview:**
 - **black** - Code formatter (opinionated, consistent)
 - **ruff** - Fast linter (replaces flake8, isort, etc.)
 - **pytest** - Testing framework
-- **mypy** - Static type checker
 
 ## Project Structure
 
 ### Detailed Directory Layout
 
 ```
-video_transcriber/
+ai_video_transcriber/
 ├── src/
 │   ├── __init__.py
 │   ├── main.py                          # Application entry point
-│   ├── requirements.txt                 # Dependencies list
-│   │
-│   ├── config/                          # Configuration management
-│   │   ├── __init__.py
-│   │   └── env_service.py               # Environment variables handler
 │   │
 │   ├── application/                     # Business logic layer
 │   │   ├── __init__.py
@@ -118,9 +103,7 @@ video_transcriber/
 │
 ├── outputs/                             # Generated files (gitignored)
 │   ├── transcriptions/                  # Raw transcription text files
-│   ├── summaries/                       # Structured markdown summaries
-│   ├── metadata/                        # Video metadata JSON
-│   └── audio/                           # Downloaded audio files
+│   └── summaries/                       # Structured markdown summaries
 │
 ├── docs/                                # Documentation
 │   ├── ARCHITECTURE.md
@@ -129,19 +112,15 @@ video_transcriber/
 │   ├── TROUBLESHOOTING.md
 │   └── DEVELOPMENT.md                   # This file
 │
-├── tests/                               # Test files (to be created)
-│   ├── __init__.py
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
-│
+├── audio.mp3                            # Downloaded audio (gitignored)
 ├── .env                                 # Local configuration (gitignored)
 ├── .env.example                         # Configuration template
 ├── .gitignore                           # Git ignore patterns
 ├── pyproject.toml                       # Project metadata & dependencies
-├── README.md                            # Main documentation
-└── LICENSE                              # MIT License
+└── README.md                            # Main documentation
 ```
+
+**Note:** Tests are not yet set up. Contributions welcome!
 
 ## Code Style & Standards
 
@@ -161,9 +140,8 @@ black src/main.py
 **Black Configuration** (`pyproject.toml`):
 ```toml
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ['py312']
-include = '\.pyi?$'
 ```
 
 ### Linting with Ruff
@@ -182,35 +160,15 @@ ruff check src/main.py
 **Ruff Configuration** (`pyproject.toml`):
 ```toml
 [tool.ruff]
-line-length = 88
-select = ["E", "F", "W", "I", "N"]
-ignore = ["E501"]
+target-version = "py312"
+line-length = 100
 ```
-
-### Type Checking with mypy
-
-```bash
-# Type check all code
-mypy src/
-
-# Check specific file
-mypy src/main.py
-
-# Strict mode
-mypy --strict src/
-```
-
-**Best Practices:**
-- Always add type hints to function signatures
-- Use `Optional[Type]` for nullable values
-- Prefer `list[Type]` over `List[Type]` (Python 3.12+)
 
 ### Code Quality Checklist
 
 Before committing:
 - [ ] Run `black src/` to format code
 - [ ] Run `ruff check --fix src/` to fix linting issues
-- [ ] Run tests with `pytest`
 - [ ] Add docstrings to new functions/classes
 - [ ] Update type hints
 - [ ] Update documentation if needed
@@ -219,38 +177,35 @@ Before committing:
 
 ### Test Structure
 
+**Note:** Test infrastructure is not yet set up. This section describes the planned test structure for future development.
+
+When tests are implemented, they will follow this structure:
+
 ```
 tests/
 ├── unit/                    # Unit tests (isolated components)
-│   ├── test_env_service.py
 │   ├── test_transcription_service.py
 │   └── test_file_storage.py
 │
 ├── integration/             # Integration tests (component interactions)
 │   ├── test_lmstudio_integration.py
-│   ├── test_transcription_flow.py
-│   └── test_cache_system.py
+│   └── test_transcription_flow.py
 │
 └── fixtures/                # Test data and fixtures
     ├── sample_audio.mp3
-    ├── sample_transcription.txt
-    └── mock_responses.json
+    └── sample_transcription.txt
 ```
 
 ### Running Tests
+
+Once tests are implemented:
 
 ```bash
 # Run all tests
 pytest
 
-# Run with coverage
-pytest --cov=src
-
 # Run specific test file
-pytest tests/unit/test_env_service.py
-
-# Run specific test
-pytest tests/unit/test_env_service.py::test_get_base_url
+pytest tests/unit/test_transcription_service.py
 
 # Run with verbose output
 pytest -v
@@ -264,10 +219,9 @@ pytest -s
 **Example: Unit Test**
 
 ```python
-# tests/unit/test_env_service.py
+# tests/unit/test_lmstudio_agent.py
 import os
 import pytest
-from src.config.env_service import EnvService
 
 def test_get_lm_studio_base_url():
     """Test LM Studio base URL retrieval."""
@@ -275,7 +229,7 @@ def test_get_lm_studio_base_url():
     os.environ['LM_STUDIO_BASE_URL'] = 'http://test:1234/v1'
     
     # Test
-    url = EnvService.get_lm_studio_base_url()
+    url = os.getenv('LM_STUDIO_BASE_URL', 'http://localhost:1234/v1')
     
     # Assert
     assert url == 'http://test:1234/v1'
@@ -286,7 +240,7 @@ def test_get_lm_studio_base_url_default():
     os.environ.pop('LM_STUDIO_BASE_URL', None)
     
     # Test with default
-    url = EnvService.get_lm_studio_base_url()
+    url = os.getenv('LM_STUDIO_BASE_URL', 'http://localhost:1234/v1')
     
     # Should return default
     assert url == 'http://localhost:1234/v1'
@@ -346,9 +300,11 @@ def mock_lm_studio(monkeypatch):
 
 ### Adding a New LLM Provider
 
-Example: Adding OpenAI support alongside LM Studio
+**Current State:** The project uses LMStudio as the local LLM backend. The next planned addition is a cloud LLM adapter (provider TBD) to replace LMStudio for production use.
 
-**1. Create Port Interface** (if not exists)
+**Example:** Adding a cloud LLM provider
+
+**1. Create Port Interface** (already exists)
 
 ```python
 # src/infrastructure/outbound/agents/ports/summarizer_agent.py
@@ -356,7 +312,13 @@ from abc import ABC, abstractmethod
 
 class SummarizerAgent(ABC):
     @abstractmethod
-    def organize_transcription(self, transcription: str, video_title: str) -> str:
+    def organize_transcription(
+        self, 
+        transcription: str, 
+        video_info: dict, 
+        lang: str, 
+        enrich_text: bool
+    ) -> str:
         """Generate structured summary from transcription."""
         pass
 ```
@@ -364,19 +326,25 @@ class SummarizerAgent(ABC):
 **2. Create Adapter Implementation**
 
 ```python
-# src/infrastructure/outbound/agents/adapters/summarizer_openai_agent.py
+# src/infrastructure/outbound/agents/adapters/summarizer_cloud_agent.py
+import os
 from openai import OpenAI
 from ..ports.summarizer_agent import SummarizerAgent
-from src.config.env_service import EnvService
 
-class SummarizerOpenAIAgent(SummarizerAgent):
+class SummarizerCloudAgent(SummarizerAgent):
     def __init__(self):
         self.client = OpenAI(
-            api_key=EnvService.get_openai_api_key()
+            api_key=os.getenv('CLOUD_LLM_API_KEY')
         )
-        self.model = EnvService.get_openai_model()
+        self.model = os.getenv('CLOUD_LLM_MODEL', 'gpt-4')
     
-    def organize_transcription(self, transcription: str, video_title: str) -> str:
+    def organize_transcription(
+        self, 
+        transcription: str, 
+        video_info: dict, 
+        lang: str, 
+        enrich_text: bool = False
+    ) -> str:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -389,38 +357,30 @@ class SummarizerOpenAIAgent(SummarizerAgent):
 
 **3. Add Configuration Support**
 
-```python
-# src/config/env_service.py
-class EnvService:
-    # ...existing methods...
-    
-    @staticmethod
-    def get_llm_provider() -> str:
-        """Get configured LLM provider (lmstudio or openai)."""
-        return os.getenv('LLM_PROVIDER', 'lmstudio')
-    
-    @staticmethod
-    def get_openai_api_key() -> str:
-        return os.getenv('OPENAI_API_KEY', '')
-    
-    @staticmethod
-    def get_openai_model() -> str:
-        return os.getenv('OPENAI_MODEL', 'gpt-4')
+Update `.env` and `.env.example`:
+
+```bash
+# LLM Provider Configuration
+LLM_PROVIDER=lmstudio  # or 'cloud'
+
+# Cloud LLM settings (if using cloud provider)
+CLOUD_LLM_API_KEY=your_api_key_here
+CLOUD_LLM_MODEL=gpt-4
 ```
 
 **4. Update Service to Use New Adapter**
 
 ```python
 # src/application/transcription/services/llm_markdown_service.py
-from src.config.env_service import EnvService
+import os
 
 def get_summarizer_agent():
     """Factory function to create appropriate summarizer."""
-    provider = EnvService.get_llm_provider()
+    provider = os.getenv('LLM_PROVIDER', 'lmstudio')
     
-    if provider == 'openai':
-        from src.infrastructure.outbound.agents.adapters.summarizer_openai_agent import SummarizerOpenAIAgent
-        return SummarizerOpenAIAgent()
+    if provider == 'cloud':
+        from src.infrastructure.outbound.agents.adapters.summarizer_cloud_agent import SummarizerCloudAgent
+        return SummarizerCloudAgent()
     elif provider == 'lmstudio':
         from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import SummarizerLMStudioAgent
         return SummarizerLMStudioAgent()
@@ -435,14 +395,14 @@ def transcription_to_markdown(video_title: str, transcription_text: str, storage
 **5. Add Tests**
 
 ```python
-# tests/integration/test_openai_agent.py
-def test_openai_agent(monkeypatch):
-    """Test OpenAI agent integration."""
-    monkeypatch.setenv('LLM_PROVIDER', 'openai')
-    monkeypatch.setenv('OPENAI_API_KEY', 'test-key')
+# tests/integration/test_cloud_agent.py
+def test_cloud_agent(monkeypatch):
+    """Test cloud LLM agent integration."""
+    monkeypatch.setenv('LLM_PROVIDER', 'cloud')
+    monkeypatch.setenv('CLOUD_LLM_API_KEY', 'test-key')
     
     agent = get_summarizer_agent()
-    assert isinstance(agent, SummarizerOpenAIAgent)
+    assert isinstance(agent, SummarizerCloudAgent)
 ```
 
 ### Adding a New Transcription Engine
@@ -593,17 +553,16 @@ Brief description of changes
 ## Release Process
 
 1. **Update version** in `pyproject.toml`
-2. **Update CHANGELOG.md** with changes
-3. **Create release tag:**
+2. **Create release tag:**
    ```bash
    git tag -a v1.0.0 -m "Release version 1.0.0"
    git push origin v1.0.0
    ```
-4. **Build package:**
+3. **Build package:**
    ```bash
    python -m build
    ```
-5. **Publish** (if applicable):
+4. **Publish** (if applicable):
    ```bash
    twine upload dist/*
    ```
@@ -614,11 +573,8 @@ Brief description of changes
 # Format and lint
 black src/ && ruff check --fix src/
 
-# Run tests with coverage
-pytest --cov=src --cov-report=html
-
-# Type check
-mypy src/
+# Run tests (when available)
+pytest
 
 # Clean Python cache
 find . -type d -name "__pycache__" -exec rm -r {} +
