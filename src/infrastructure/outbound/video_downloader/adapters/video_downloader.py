@@ -2,6 +2,16 @@ import os
 import re
 from typing import LiteralString
 import yt_dlp
+from rich.progress import (
+    Progress,
+    BarColumn,
+    DownloadColumn,
+    TransferSpeedColumn,
+    TimeRemainingColumn,
+    SpinnerColumn,
+    TextColumn,
+)
+from src.console import console
 from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import (
     VideoDownloaderPort,
 )
@@ -18,7 +28,7 @@ class VideoDownloader(VideoDownloaderPort):
         cookies_file = os.getenv("YT_DLP_COOKIES_FILE")
         if cookies_file and os.path.exists(cookies_file):
             opts["cookiefile"] = cookies_file
-            print(f"🍪 Using cookies from file: {cookies_file}")
+            console.print(f"🍪 Using cookies from file: {cookies_file}")
         return opts
 
     def _clean_vtt(self, file_path: str):
@@ -31,7 +41,7 @@ class VideoDownloader(VideoDownloaderPort):
         return "\n".join([l for l in cleaned if l])
 
     def download_subtitles(self, url: str, lang: str) -> LiteralString | None:
-        print("Trying to download automatic subtitles from YouTube...")
+        console.print("Trying to download automatic subtitles from YouTube...")
         ydl_opts = self._get_base_opts()
         ydl_opts.update(
             {
@@ -42,14 +52,15 @@ class VideoDownloader(VideoDownloaderPort):
                 "outtmpl": "%(title)s.%(ext)s",
             }
         )
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            result = ydl.extract_info(url, download=True)
-            title = result.get("title", "output")
+        with console.status("[bold blue]📥 Downloading subtitles..."):
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                result = ydl.extract_info(url, download=True)
+                title = result.get("title", "output")
         vtt_file = f"{title}.{lang}.vtt"
         if os.path.exists(vtt_file):
             return self._clean_vtt(vtt_file)
         else:
-            print("No subtitles found.")
+            console.print("No subtitles found.")
             return None
 
     def download_audio(self, url: str) -> str:
@@ -58,8 +69,6 @@ class VideoDownloader(VideoDownloaderPort):
         :param url: The URL of the video to download.
         :return: The path to the downloaded video file.
         """
-        print("Downloading audio...")
-
         # Extract video ID from URL
         ydl_opts_info = self._get_base_opts()
         with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
@@ -74,6 +83,33 @@ class VideoDownloader(VideoDownloaderPort):
         audio_filename = f"{video_id}.mp3"
         audio_path = os.path.join(audio_dir, audio_filename)
 
+        # Setup progress bar
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[bold blue]🎵 Downloading audio..."),
+            BarColumn(),
+            DownloadColumn(),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        )
+
+        task_id = None
+
+        def progress_hook(d):
+            nonlocal task_id
+            if d["status"] == "downloading":
+                total = d.get("total_bytes") or d.get("total_bytes_estimate")
+                downloaded = d.get("downloaded_bytes", 0)
+
+                if total:
+                    if task_id is None:
+                        task_id = progress.add_task("download", total=total)
+                    progress.update(task_id, completed=downloaded)
+            elif d["status"] == "finished":
+                if task_id is not None:
+                    progress.update(task_id, completed=progress.tasks[0].total)
+
         ydl_opts = self._get_base_opts()
         ydl_opts.update(
             {
@@ -86,10 +122,15 @@ class VideoDownloader(VideoDownloaderPort):
                         "preferredquality": "192",
                     }
                 ],
+                "progress_hooks": [progress_hook],
+                "quiet": True,
+                "no_warnings": True,
             }
         )
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+
+        with progress:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
 
         return audio_path
 
@@ -112,9 +153,9 @@ class VideoDownloader(VideoDownloaderPort):
             "webpage_url": info.get("webpage_url"),
         }
 
-        print("\n--- VIDEO INFO ---\n")
+        console.print("\n--- VIDEO INFO ---\n")
         for k, v in video_info.items():
-            print(f"{k}: {v}")
-        print("\n------------------\n")
+            console.print(f"{k}: {v}")
+        console.print("\n------------------\n")
 
         return video_info

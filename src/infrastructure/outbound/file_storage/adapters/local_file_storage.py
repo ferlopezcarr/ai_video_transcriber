@@ -1,8 +1,10 @@
 import os
 
+from src.console import console
 from src.infrastructure.outbound.file_storage.ports.file_storage_port import FileStoragePort
 
 OUTPUT_PATH = "outputs/"
+
 
 class LocalFileStorage(FileStoragePort):
     def save(self, data: str, file_path: str) -> str:
@@ -14,7 +16,7 @@ class LocalFileStorage(FileStoragePort):
             raise Exception("Invalid file path provided.")
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(data)
-        print(f"File saved: {output_path}")
+        console.print(f"File saved: {output_path}")
         return output_path
 
     def exists(self, file_path: str) -> bool:
@@ -27,4 +29,3 @@ class LocalFileStorage(FileStoragePort):
             raise FileNotFoundError(f"File not found: {output_path}")
         with open(output_path, "r", encoding="utf-8") as f:
             return f.read()
-
