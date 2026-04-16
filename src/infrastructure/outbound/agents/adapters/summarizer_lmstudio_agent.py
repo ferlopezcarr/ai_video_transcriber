@@ -45,7 +45,7 @@ def calculate_min_summary_lines(
 
 
 class SummarizerLMStudioAgent(SummarizerAgent):
-    def __init__(self, model: str = None):
+    def __init__(self, model: str | None = None):
         """
         Initialize LM Studio agent using OpenAI-compatible API.
         :param model: The LLM model to use (falls back to LM_STUDIO_MODEL env var, then defaults to 'openai/gpt-oss-20b')
@@ -133,7 +133,11 @@ Error: {str(e)}
         self, transcription: str, video_info: dict, lang: str, enrich_text: bool = False
     ) -> str:
         # Calculate minimum lines based on video duration
-        video_duration = video_info.get("duration", 0) if video_info else 0
+        raw_video_duration = video_info.get("duration") if video_info else None
+        try:
+            video_duration = max(0, int(raw_video_duration)) if raw_video_duration is not None else 0
+        except (TypeError, ValueError):
+            video_duration = 0
         min_lines = calculate_min_summary_lines(video_duration)
 
         # Format duration for display

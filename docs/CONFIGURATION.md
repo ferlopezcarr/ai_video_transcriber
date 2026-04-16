@@ -42,14 +42,20 @@ LM_STUDIO_TIMEOUT=1800.0
 # Optional: path to Netscape cookies.txt for age-restricted videos
 # Leave unset for normal public videos
 # YT_DLP_COOKIES_FILE=/absolute/path/to/cookies.txt
+
+# Optional: JavaScript runtimes for yt-dlp (comma-separated)
+# Helps avoid YouTube warning about missing JS runtime support
+# YT_DLP_JS_RUNTIMES=deno,node
 ```
 
 ### YouTube Downloader Notes
 
 - For public YouTube videos, leave `YT_DLP_COOKIES_FILE` unset.
+- If yt-dlp warns about missing JavaScript runtimes, set `YT_DLP_JS_RUNTIMES`.
 - If YouTube videos are age-restricted, provide a cookies file:
 
 ```bash
+export YT_DLP_JS_RUNTIMES=deno,node
 export YT_DLP_COOKIES_FILE=/absolute/path/to/cookies.txt
 python -m src.main "https://www.youtube.com/watch?v=video_id"
 ```

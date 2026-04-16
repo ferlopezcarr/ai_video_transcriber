@@ -282,6 +282,54 @@ export HTTPS_PROXY=http://proxy:port
 python -m src.main "video_url"
 ```
 
+#### 6. Warning: "No supported JavaScript runtime could be found"
+
+```text
+WARNING: [youtube] No supported JavaScript runtime could be found...
+```
+
+This warning means yt-dlp cannot use JavaScript-based extraction paths. It can still work in many cases, but reliability is lower.
+
+**Solution:**
+
+```bash
+# Install runtimes (pick one or both)
+brew install deno
+brew install node
+
+# Tell this app which runtimes yt-dlp should use
+export YT_DLP_JS_RUNTIMES=deno,node
+
+# Retry
+python -m src.main "video_url"
+```
+
+#### 7. Error: "Unable to download video subtitles ... HTTP Error 429"
+
+```text
+ERROR: Unable to download video subtitles for 'es': HTTP Error 429: Too Many Requests
+```
+
+YouTube temporarily rate-limited subtitle download requests.
+
+**What the app does now:**
+- If subtitle download fails with 429, it automatically falls back to audio transcription.
+
+**Extra mitigations:**
+
+```bash
+# 1) Wait and retry later (rate limits are usually temporary)
+
+# 2) Keep yt-dlp updated
+uv pip install --upgrade yt-dlp
+
+# 3) Add JS runtimes to improve extractor reliability
+export YT_DLP_JS_RUNTIMES=deno,node
+
+# 4) Retry with uv-managed environment
+uv run python -m src.main "video_url" --lang es
+```
+
 ### Error: "Transcription failed"
 
 ```

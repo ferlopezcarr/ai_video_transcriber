@@ -20,6 +20,11 @@ uv.lock
 ## Build output
 **/dist
 
+## Tests
+**/coverage
+**/test-results
+.coverage
+
 ## Environment variables
 *.env
 !.env.example
@@ -47,3 +52,7 @@ outputs/
 ## Video outputs
 *.mp4
 *.avi
+
+## Subtitle outputs
+*.srt
+*.vtt

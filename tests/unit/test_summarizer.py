@@ -2,6 +2,7 @@
 
 import pytest
 from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import (
+    SummarizerLMStudioAgent,
     calculate_min_summary_lines,
 )
 
@@ -141,3 +142,52 @@ class TestCalculateMinSummaryLines:
         result = calculate_min_summary_lines(duration_seconds=1, min_lines=100)
         # Would calculate to ~50, but should be raised to 100
         assert result == 100
+
+
+class TestSummarizerLMStudioAgent:
+    """Tests for summary organization edge cases."""
+
+    def test_organize_transcription_handles_none_duration(
+        self, monkeypatch, sample_transcription, sample_video_info
+    ):
+        """Test that organize_transcription does not crash when duration is None."""
+
+        monkeypatch.setattr(SummarizerLMStudioAgent, "_health_check", lambda self: None)
+
+        captured = {}
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+
+                class Message:
+                    content = "# Summary"
+
+                class Choice:
+                    message = Message()
+
+                class Response:
+                    choices = [Choice()]
+
+                return Response()
+
+        class FakeChat:
+            completions = FakeCompletions()
+
+        class FakeClient:
+            chat = FakeChat()
+
+        agent = SummarizerLMStudioAgent(model="test-model")
+        agent.client = FakeClient()
+
+        video_info = {**sample_video_info, "duration": None}
+
+        result = agent.organize_transcription(
+            transcription=sample_transcription,
+            video_info=video_info,
+            lang="en",
+            enrich_text=False,
+        )
+
+        assert result == "# Summary"
+        assert "0 minutes requires 50+ lines" in captured["messages"][1]["content"]

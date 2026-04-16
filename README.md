@@ -128,6 +128,8 @@ Generated files are organized in the `outputs/` directory:
 
 ```
 outputs/
+├── subtitles/             # Downloaded subtitle files from providers (e.g. .vtt)
+│   └── Video Title.es.vtt
 ├── transcriptions/          # Plain text transcriptions
 │   └── Video Title.txt
 └── summaries/              # AI-organized summaries
