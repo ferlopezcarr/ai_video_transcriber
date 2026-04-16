@@ -36,8 +36,12 @@ LM_STUDIO_API_KEY=
 LM_STUDIO_MODEL=openai/gpt-oss-20b
 
 # Timeout in seconds for LM Studio API requests
-# Default is 1800.0 (30 minutes) for long videos
+# Default is 1800.0 (30 minutes) as the minimum timeout floor
 LM_STUDIO_TIMEOUT=1800.0
+
+# Additional timeout budget per video minute.
+# Default is 120 seconds, so a 60-minute video gets a 7200s timeout.
+LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE=120.0
 
 # Optional: path to Netscape cookies.txt for age-restricted videos
 # Leave unset for normal public videos
@@ -136,34 +140,58 @@ curl http://localhost:1234/v1/models
 
 #### `LM_STUDIO_TIMEOUT`
 
-**Purpose:** Request timeout in seconds
+**Purpose:** Minimum request timeout in seconds
 
 **Default:** `1800.0` (30 minutes)
 
 **Usage:**
-- How long to wait for LLM responses
-- Longer videos need more time
-- Slower systems need more time
+- Acts as the minimum timeout floor for summary generation
+- Short videos keep this minimum timeout
+- Longer videos scale above this floor based on `LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE`
+- Slower systems may need a higher floor
 
 ```bash
-# Short videos (under 5 minutes)
-LM_STUDIO_TIMEOUT=180.0
+# Conservative minimum for all videos
+LM_STUDIO_TIMEOUT=900.0
 
-# Standard (5-20 minute videos)
-LM_STUDIO_TIMEOUT=600.0
-
-# Long videos (20-60 minutes)
-LM_STUDIO_TIMEOUT=1200.0
-
-# Very long videos (1+ hour) - use default
+# Recommended default minimum
 LM_STUDIO_TIMEOUT=1800.0
+
+# Extra-slow machine or large model
+LM_STUDIO_TIMEOUT=2400.0
 ```
 
 **Recommendations:**
-- Default (1800 seconds / 30 minutes) is suitable for long videos
-- Decrease for shorter videos if desired
-- Increase beyond 30 minutes only for extremely long content
-- Monitor LM Studio's processing time during first run
+- Default (1800 seconds / 30 minutes) is a good floor for most setups
+- Raise it if model loading or prompt ingestion is slow on your machine
+- Keep it lower only if you want timeouts to fail faster on shorter jobs
+
+#### `LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE`
+
+**Purpose:** Additional timeout budget per minute of video
+
+**Default:** `120.0`
+
+**Usage:**
+- Controls how aggressively timeout grows with video length
+- The effective timeout is `max(LM_STUDIO_TIMEOUT, video_minutes * LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE)`
+- Useful when your local model runs slower or faster than real time
+
+```bash
+# 1 minute of timeout budget per video minute
+LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE=60.0
+
+# 2 minutes of timeout budget per video minute (default)
+LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE=120.0
+
+# 3 minutes of timeout budget per video minute
+LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE=180.0
+```
+
+**Examples:**
+- 10-minute video: `max(1800, 10 * 120) = 1800s`
+- 30-minute video: `max(1800, 30 * 120) = 3600s`
+- 60-minute video: `max(1800, 60 * 120) = 7200s`
 
 ## LM Studio Setup
 
@@ -346,7 +374,8 @@ LM_STUDIO_BASE_URL=http://localhost:1234/v1
 **Symptom:** `Request timed out` during processing
 
 **Solutions:**
-1. Increase `LM_STUDIO_TIMEOUT` in `.env`
+1. Increase `LM_STUDIO_TIMEOUT` if even short videos fail early
+2. Increase `LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE` if longer videos time out disproportionately
 2. Check LM Studio isn't frozen
 3. Try smaller/faster model
 4. Monitor system resources (RAM, CPU, GPU)

@@ -44,6 +44,30 @@ def calculate_min_summary_lines(
     return max(min_lines, min(calculated_lines, max_lines))
 
 
+def calculate_summary_timeout(
+    duration_seconds: int | None,
+    minimum_timeout: float = 1800.0,
+    timeout_per_video_minute: float = 120.0,
+) -> float:
+    """
+    Calculate the LLM timeout for a summary request.
+
+    The timeout scales with video duration, while keeping a minimum floor for
+    shorter videos and unknown durations.
+
+    :param duration_seconds: Video duration in seconds
+    :param minimum_timeout: Minimum timeout floor in seconds
+    :param timeout_per_video_minute: Timeout budget added per video minute
+    :return: Request timeout in seconds
+    """
+    if not duration_seconds or duration_seconds <= 0:
+        return float(minimum_timeout)
+
+    duration_minutes = duration_seconds / 60
+    proportional_timeout = duration_minutes * timeout_per_video_minute
+    return max(float(minimum_timeout), float(proportional_timeout))
+
+
 class SummarizerLMStudioAgent(SummarizerAgent):
     def __init__(self, model: str | None = None):
         """
@@ -51,17 +75,19 @@ class SummarizerLMStudioAgent(SummarizerAgent):
         :param model: The LLM model to use (falls back to LM_STUDIO_MODEL env var, then defaults to 'openai/gpt-oss-20b')
         :param api_key: API key (LM Studio doesn't require a real key, defaults to 'not-needed')
         :param base_url: Base URL for LM Studio API (defaults to local LM Studio instance)
-        :param timeout: Request timeout in seconds (defaults to 300s/5min for long transcriptions)
+        :param timeout: Minimum request timeout in seconds for summary generation
         """
         self.base_url = os.getenv("LM_STUDIO_BASE_URL", "")
         # Use provided model, fall back to env var, then to default
         self.model = model or os.getenv("LM_STUDIO_MODEL", "openai/gpt-oss-20b")
+        self.minimum_timeout = float(os.getenv("LM_STUDIO_TIMEOUT", "1800.0"))
+        self.timeout_per_video_minute = float(
+            os.getenv("LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE", "120.0")
+        )
         self.client = OpenAI(
             base_url=self.base_url,
             api_key=os.getenv("LM_STUDIO_API_KEY", ""),
-            timeout=float(
-                os.getenv("LM_STUDIO_TIMEOUT", "1800.0")
-            ),  # 30 minutes default for long summaries
+            timeout=self.minimum_timeout,
         )
 
         # Perform health check with short timeout
@@ -139,6 +165,11 @@ Error: {str(e)}
         except (TypeError, ValueError):
             video_duration = 0
         min_lines = calculate_min_summary_lines(video_duration)
+        request_timeout = calculate_summary_timeout(
+            video_duration,
+            minimum_timeout=self.minimum_timeout,
+            timeout_per_video_minute=self.timeout_per_video_minute,
+        )
 
         # Format duration for display
         duration_str = ""
@@ -149,6 +180,12 @@ Error: {str(e)}
             console.print(
                 f"📊 Video duration: {duration_str} (~{minutes} min) → Required minimum: {min_lines} lines"
             )
+
+        console.print(
+            f"⏱️ Summary request timeout: {int(request_timeout)}s "
+            f"(minimum={int(self.minimum_timeout)}s, "
+            f"rate={int(self.timeout_per_video_minute)}s/video-minute)"
+        )
 
         video_info_str = ""
         if video_info:
@@ -235,7 +272,7 @@ Do not include any disclaimer or notes that are not part of the main topic.
             console.print(f"\n🤖 Connecting to LM Studio at {self.base_url}...")
             console.print(f"📝 Processing transcription with model: {self.model}...")
 
-            response_stream = self.client.chat.completions.create(
+            response_stream = self.client.with_options(timeout=request_timeout).chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},

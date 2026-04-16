@@ -4,6 +4,7 @@ import pytest
 from src.infrastructure.outbound.agents.adapters.summarizer_lmstudio_agent import (
     SummarizerLMStudioAgent,
     calculate_min_summary_lines,
+    calculate_summary_timeout,
 )
 
 
@@ -144,6 +145,30 @@ class TestCalculateMinSummaryLines:
         assert result == 100
 
 
+class TestCalculateSummaryTimeout:
+    """Tests for the calculate_summary_timeout function."""
+
+    def test_unknown_duration_uses_minimum_timeout(self):
+        """Unknown duration should fall back to the minimum timeout."""
+        assert calculate_summary_timeout(None, minimum_timeout=1800.0) == 1800.0
+
+    def test_short_video_keeps_minimum_timeout(self):
+        """Short videos should not lower the timeout below the minimum."""
+        assert calculate_summary_timeout(300, minimum_timeout=1800.0) == 1800.0
+
+    def test_long_video_scales_timeout_proportionally(self):
+        """Long videos should get a larger timeout."""
+        assert calculate_summary_timeout(3600, minimum_timeout=1800.0) == 7200.0
+
+    def test_custom_timeout_rate(self):
+        """Custom timeout-per-minute settings should be respected."""
+        assert calculate_summary_timeout(
+            1800,
+            minimum_timeout=900.0,
+            timeout_per_video_minute=90.0,
+        ) == 2700.0
+
+
 class TestSummarizerLMStudioAgent:
     """Tests for summary organization edge cases."""
 
@@ -160,22 +185,28 @@ class TestSummarizerLMStudioAgent:
             def create(self, **kwargs):
                 captured.update(kwargs)
 
-                class Message:
+                class Delta:
                     content = "# Summary"
 
                 class Choice:
-                    message = Message()
+                    delta = Delta()
 
-                class Response:
+                class Chunk:
                     choices = [Choice()]
 
-                return Response()
+                return [Chunk()]
 
         class FakeChat:
-            completions = FakeCompletions()
+            def __init__(self):
+                self.completions = FakeCompletions()
 
         class FakeClient:
-            chat = FakeChat()
+            def __init__(self):
+                self.chat = FakeChat()
+
+            def with_options(self, **kwargs):
+                captured["timeout"] = kwargs.get("timeout")
+                return self
 
         agent = SummarizerLMStudioAgent(model="test-model")
         agent.client = FakeClient()
@@ -191,3 +222,55 @@ class TestSummarizerLMStudioAgent:
 
         assert result == "# Summary"
         assert "0 minutes requires 50+ lines" in captured["messages"][1]["content"]
+        assert captured["timeout"] == 1800.0
+
+    def test_organize_transcription_scales_timeout_with_video_duration(
+        self, monkeypatch, sample_transcription, sample_video_info
+    ):
+        """Long videos should increase the request timeout."""
+
+        monkeypatch.setattr(SummarizerLMStudioAgent, "_health_check", lambda self: None)
+
+        captured = {}
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+
+                class Delta:
+                    content = "# Summary"
+
+                class Choice:
+                    delta = Delta()
+
+                class Chunk:
+                    choices = [Choice()]
+
+                return [Chunk()]
+
+        class FakeChat:
+            def __init__(self):
+                self.completions = FakeCompletions()
+
+        class FakeClient:
+            def __init__(self):
+                self.chat = FakeChat()
+
+            def with_options(self, **kwargs):
+                captured["timeout"] = kwargs.get("timeout")
+                return self
+
+        agent = SummarizerLMStudioAgent(model="test-model")
+        agent.client = FakeClient()
+
+        video_info = {**sample_video_info, "duration": 3600}
+
+        result = agent.organize_transcription(
+            transcription=sample_transcription,
+            video_info=video_info,
+            lang="en",
+            enrich_text=False,
+        )
+
+        assert result == "# Summary"
+        assert captured["timeout"] == 7200.0

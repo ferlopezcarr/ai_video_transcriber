@@ -70,7 +70,10 @@ LM_STUDIO_BASE_URL=''
 LM_STUDIO_API_KEY=''
 LM_STUDIO_MODEL=local-model
 LM_STUDIO_TIMEOUT=1800.0
+LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE=120.0
 ```
+
+`LM_STUDIO_TIMEOUT` is now the minimum timeout floor. Longer videos scale beyond that value based on `LM_STUDIO_TIMEOUT_PER_VIDEO_MINUTE`.
 
 **See [Configuration Guide](docs/CONFIGURATION.md) for detailed setup.**
 
