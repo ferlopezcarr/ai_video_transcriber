@@ -216,3 +216,58 @@ class TestGetBaseOpts:
         # Should include cookiefile
         assert "cookiefile" in opts
         assert opts["cookiefile"] == str(cookies_file)
+
+    def test_get_base_opts_with_js_runtimes(self, monkeypatch):
+        """Test that JS runtimes are included when configured via environment variable."""
+        from src.infrastructure.outbound.video_downloader.adapters.video_downloader import (
+            VideoDownloader,
+        )
+
+        monkeypatch.delenv("YT_DLP_COOKIES_FILE", raising=False)
+        monkeypatch.setenv("YT_DLP_JS_RUNTIMES", "deno,node")
+
+        downloader = VideoDownloader()
+        opts = downloader._get_base_opts()
+
+        assert "js_runtimes" in opts
+        assert opts["js_runtimes"] == ["deno", "node"]
+
+
+class TestSubtitleStorage:
+    """Tests for subtitle file storage paths."""
+
+    def test_download_subtitles_stores_vtt_under_outputs_subtitles(self, monkeypatch, tmp_path):
+        """Test that yt-dlp subtitle files are written under outputs/subtitles."""
+        from src.infrastructure.outbound.video_downloader.adapters.video_downloader import (
+            VideoDownloader,
+        )
+
+        monkeypatch.chdir(tmp_path)
+
+        captured_opts = {}
+
+        class FakeYoutubeDL:
+            def __init__(self, opts):
+                captured_opts.update(opts)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def extract_info(self, url, download=True):
+                subtitle_path = tmp_path / "outputs" / "subtitles" / "Sample Title.es.vtt"
+                subtitle_path.parent.mkdir(parents=True, exist_ok=True)
+                subtitle_path.write_text("WEBVTT\n\nSubtitle line", encoding="utf-8")
+                return {"title": "Sample Title"}
+
+        monkeypatch.setattr("yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+        downloader = VideoDownloader()
+        result = downloader.download_subtitles("https://example.com/video", "es")
+
+        assert result == "WEBVTT\nSubtitle line"
+        assert captured_opts["outtmpl"] == os.path.join(
+            "outputs", "subtitles", "%(title)s.%(ext)s"
+        )

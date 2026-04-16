@@ -12,12 +12,18 @@ from rich.progress import (
     TextColumn,
 )
 from src.console import console
+from yt_dlp.utils import DownloadError
 from src.infrastructure.outbound.video_downloader.ports.video_downloader_port import (
     VideoDownloaderPort,
 )
 
 
 class VideoDownloader(VideoDownloaderPort):
+    def _get_subtitles_dir(self) -> str:
+        subtitles_dir = os.path.join("outputs", "subtitles")
+        os.makedirs(subtitles_dir, exist_ok=True)
+        return subtitles_dir
+
     def _get_base_opts(self) -> dict:
         """
         Get base yt-dlp options. Uses android_vr client by default (yt-dlp default)
@@ -29,6 +35,13 @@ class VideoDownloader(VideoDownloaderPort):
         if cookies_file and os.path.exists(cookies_file):
             opts["cookiefile"] = cookies_file
             console.print(f"🍪 Using cookies from file: {cookies_file}")
+
+        js_runtimes = os.getenv("YT_DLP_JS_RUNTIMES")
+        if js_runtimes:
+            runtimes = [runtime.strip() for runtime in js_runtimes.split(",") if runtime.strip()]
+            if runtimes:
+                opts["js_runtimes"] = runtimes
+                print(f"🧠 Using JS runtimes: {', '.join(runtimes)}")
         return opts
 
     def _clean_vtt(self, file_path: str):
@@ -42,6 +55,7 @@ class VideoDownloader(VideoDownloaderPort):
 
     def download_subtitles(self, url: str, lang: str) -> LiteralString | None:
         console.print("Trying to download automatic subtitles from YouTube...")
+        subtitles_dir = self._get_subtitles_dir()
         ydl_opts = self._get_base_opts()
         ydl_opts.update(
             {
@@ -49,14 +63,31 @@ class VideoDownloader(VideoDownloaderPort):
                 "writesubtitles": True,
                 "writeautomaticsub": True,
                 "subtitleslangs": [lang],
-                "outtmpl": "%(title)s.%(ext)s",
+                "retries": 3,
+                "fragment_retries": 3,
+                "sleep_interval_requests": 1,
+                "outtmpl": os.path.join(subtitles_dir, "%(title)s.%(ext)s"),
             }
         )
-        with console.status("[bold blue]📥 Downloading subtitles..."):
+        try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 result = ydl.extract_info(url, download=True)
                 title = result.get("title", "output")
-        vtt_file = f"{title}.{lang}.vtt"
+        except DownloadError as exc:
+            error_message = str(exc)
+            if "HTTP Error 429" in error_message:
+                console.print(
+                    "⚠️ YouTube rate-limited subtitle download (HTTP 429). "
+                    "Falling back to audio transcription..."
+                )
+            else:
+                console.print(
+                    "⚠️ Could not download subtitles. Falling back to audio transcription..."
+                )
+                console.print(f"Reason: {error_message}")
+            return None
+
+        vtt_file = os.path.join(subtitles_dir, f"{title}.{lang}.vtt")
         if os.path.exists(vtt_file):
             return self._clean_vtt(vtt_file)
         else:
